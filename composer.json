@@ -1,0 +1,10 @@
+{
+    "name": "drupal/iq_hoosuite_publisher",
+    "description": "Hootsuite extension for iq_publisher",
+    "type": "drupal-module",
+    "minimum-stability": "dev",
+    "require": {
+        "iqual/iq_publisher": "*",
+        "drupal/oauth2_client": "^2.0"
+    }
+}

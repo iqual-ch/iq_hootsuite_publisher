@@ -1,0 +1,4 @@
+administer hootsuite api settings:
+  title: 'Administer Hootsuite API settings'
+  description: 'Users with this permission will be able to administer Hootsuite API settings'
+  restrict access: TRUE

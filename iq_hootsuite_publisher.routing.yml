@@ -1,0 +1,14 @@
+iq_hootsuite_publisher.settings:
+  path: 'admin/config/services/iq_hootsuite_publisher'
+  defaults:
+    _form:  '\Drupal\iq_hootsuite_publisher\Form\Settings'
+    _title: 'Hootsuite API Settings'
+  requirements:
+    _permission: 'administer hootsuite api settings'
+
+iq_hootsuite_publisher.callback:
+  path: 'iq_hootsuite_publisher/callback'
+  defaults: { _controller: '\Drupal\iq_hootsuite_publisher\Controller\Callback::callbackUrl' }
+  methods:  [GET]
+  requirements:
+    _permission: 'administer hootsuite api settings'

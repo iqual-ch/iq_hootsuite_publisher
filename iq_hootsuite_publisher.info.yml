@@ -1,0 +1,10 @@
+name: iq_hootsuite_publisher
+description: Hootsuite extension for iq_publisher.
+type: module
+package: 'iqual'
+core: 8.x
+configure: iq_hootsuite_publisher.settings
+
+dependencies:
+  - iq_publisher:iq_publisher
+  - oauth2_client:oauth2_client
