@@ -64,5 +64,4 @@ class Callback extends ControllerBase {
 
     return new RedirectResponse(Url::fromRoute('iq_hootsuite_publisher.settings')->toString());
   }
-
 }

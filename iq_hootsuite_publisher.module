@@ -55,14 +55,7 @@ function send_post( &$entity ){
     $entity->field_tg_hootsuite_post_id->value = null;
   }
 
-   //// SEND POST
-  $request_body_message = [
-    'text'              => $entity->field_post->value,
-    'socialProfileIds'  => [$entity->field_tg_social_profile_id->value],
-    'scheduledSendTime' => $entity->field_tg_date->value,
-  ];
-
-  // // Get IDs of all film nodes that reference this entity
+  // send new post
   $node = \Drupal::routeMatch()->getParameter('node');
   if ($node instanceof \Drupal\node\NodeInterface) {
 
@@ -83,13 +76,13 @@ function send_post( &$entity ){
         ['url' => $token_service->replace($entity->field_image->value, $entity_data)]
       ];
     }
+
+    // $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
+    // $hootsuite_post_id = $hootsuite_client->connect( 'post', 'endpoioint', '', $request_body_message );  // return id of post from hootsuite
+    // $entity->field_tg_hootsuite_post_id = $hootsuite_post_id;
+
+    \Drupal::logger('iq_hootsuite_publisher')->notice('sent post: '.$entity->id().serialize( $request_body_message ) );
   }
-
-  // send to $config->get('url_post_message_endpoint')
-  $entity->field_tg_hootsuite_post_id = time();
-
-  \Drupal::logger('iq_hootsuite_publisher')->notice('sent post: '.$entity->id().serialize( $request_body_message ) );
-
 }
 
 
@@ -97,8 +90,6 @@ function delete_post( &$entity ){
   $request_body_delete = [
     'messageId' => $entity->field_tg_hootsuite_post_id->value
   ];
-
-  //// DELETE
 
 //  $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
 //  $hootsuite_client->connect( 'delete', 'endpoioint', '', $request_body_delete );

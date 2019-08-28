@@ -68,10 +68,6 @@ class Settings extends ConfigFormBase {
     $tokenConf = $this->config('iq_hootsuite_publisher.tokens');
     $options = ['attributes' => ['target' => '_blank']];
 
-
-
-
-
     $form['client'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Client Settings'),
@@ -100,17 +96,6 @@ class Settings extends ConfigFormBase {
       '#default_value' => $config->get('client_secret'),
       '#required' => TRUE,
     ];
-
-    // $linkScopes = Link::fromTextAndUrl('click here to learn more', Url::fromUri('https://developers.google.com/identity/protocols/googlescopes', $options))->toString();
-    // $form['client']['scopes'] = [
-    //   '#type' => 'textarea',
-    //   '#title' => $this->t('Client Scopes'),
-    //   '#default_value' => $config->get('scopes'),
-    //   '#required' => TRUE,
-    //   '#description' => $this->t('Add one scope per line. OAuth 2.0 Scopes for Google APIs, @link. After changing scopes, you have to request new tokens.',
-    //     ['@link' => $linkScopes]
-    //   ),
-    // ];
 
     if ($config->get('client_id') != '') {
       $link = Link::fromTextAndUrl('click here', Url::fromUri($this->accessUrl(), $options))->toString();
@@ -200,12 +185,7 @@ class Settings extends ConfigFormBase {
       ->set('url_post_message_endpoint', $form_state->getValue('url_post_message_endpoint'))
       ->set('url_post_media_endpoint', $form_state->getValue('url_post_media_endpoint'))
       ->set('url_delete_message_endpoint', $form_state->getValue('url_delete_message_endpoint'))
-
-
-
-//      ->set('scopes', $form_state->getValue('scopes'))
       ->save();
-
     parent::submitForm($form, $form_state);
   }
 

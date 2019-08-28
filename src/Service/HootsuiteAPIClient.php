@@ -99,22 +99,23 @@ class HootsuiteAPIClient {
   public function getAccessTokenByAuthCode($code) {
 
 
-    $token = $this->OAuth2Client->getAccessToken('authorization_code', [
-        'code' => $code
-    ]);
 
-      print_r( $token );
+    // $token = $this->OAuth2Client->getAccessToken('authorization_code', [
+    //     'code' => $code
+    // ]);
 
-      die();
+    //   print_r( $token );
 
-    if ( $token->getToken() ) {
-      $this->setTokenCache('access_token', $token->getToken() );
-    }
+    //   die();
 
-    // Refresh token is only set the first time.
-    if ( $token->getRefreshToken() ) {
-      $this->setTokenCache('refresh_token', $token->getRefreshToken() );
-    }
+    // if ( $token->getToken() ) {
+    //   $this->setTokenCache('access_token', $token->getToken() );
+    // }
+
+    // // Refresh token is only set the first time.
+    // if ( $token->getRefreshToken() ) {
+    //   $this->setTokenCache('refresh_token', $token->getRefreshToken() );
+    // }
 
     return $token;
   }
@@ -137,8 +138,6 @@ class HootsuiteAPIClient {
     // TODO: Possibly allow returning the whole body.
     return $response->getBody()->getContents();
   }
-
-
 
   private function setTokenCache($key, array $value) {
     // Save the token.
