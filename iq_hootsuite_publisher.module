@@ -2,29 +2,6 @@
 
 use \GuzzleHttp\RequestOptions;
 
-function iq_hootsuite_publisher_preprocess_entity_add_list(&$variables)
-{
-
-    \Drupal::logger('iq_hootsuite_publisher')->notice('Triggered: iq_hootsuite_publisher_preprocess_entity_add_list');
-
-    foreach ($variables['bundles'] as $bundle_name => $bundle_info) {
-        if ($bundle_name == 'facebook_page_transgourmet') {
-
-            //   $route_name = "entity.assignment.add_page";
-            //   $nid = \Drupal::request()->query->get('node');
-            //   $options = ['absolute' => true];
-            //   $url = \Drupal\Core\Url::fromRoute($route_name);
-            //   $url = \Drupal\Core\Url::fromUserInput($url->toString() . '/' . $bundle_name . '?node=' . $nid, $options);
-
-            //   // $url = $url->toString();
-            //   // echo $url . '<br />';
-            //   // die();
-            // $bundle_info['add_link']->setUrl($url);
-            //   //
-            //   // print_r();
-        }
-    }
-}
 
 function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterface $entity)
 {
