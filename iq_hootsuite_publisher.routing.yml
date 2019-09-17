@@ -12,3 +12,11 @@ iq_hootsuite_publisher.callback:
   methods:  [GET]
   requirements:
     _permission: 'administer hootsuite api settings'
+
+iq_hootsuite_publisher.profiles:
+  path: 'admin/config/services/iq_hootsuite_publisher/profiles'
+  defaults:
+    _form:  '\Drupal\iq_hootsuite_publisher\Form\Profiles'
+    _title: 'Social profiles'
+    requirements:
+      _permission: 'administer hootsuite api settings'

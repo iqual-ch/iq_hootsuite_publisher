@@ -47,15 +47,15 @@ class Callback extends ControllerBase {
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   Request.
    *
-   * @return array
+   * @return RedirectResponse
    *   Return markup for the page.
    */
   public function callbackUrl(Request $request) {
     $code = $request->get('code');
-    $token = $this->hootsuiteAPIClient->getAccessTokenByAuthCode($code);
 
+    $token = $this->hootsuiteAPIClient->getAccessTokenByAuthCode($code);
     // If token valid.
-    if ( $token->getToken() ) {
+    if ($token == true) {
       $this->messenger()->addMessage($this->t('Access tokens saved'));
     }
     else {

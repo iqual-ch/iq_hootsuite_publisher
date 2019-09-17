@@ -64,9 +64,10 @@ class Settings extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+
     $config = $this->config('iq_hootsuite_publisher.settings');
     $tokenConf = $this->config('iq_hootsuite_publisher.tokens');
-    $options = ['attributes' => ['target' => '_blank']];
+    $options = ['attributes' => ['target' => '_self']];
 
     $form['client'] = [
       '#type' => 'fieldset',
@@ -161,6 +162,12 @@ class Settings extends ConfigFormBase {
       '#default_value' => $config->get('url_post_media_endpoint'),
       '#required' => TRUE,
     ];
+      $form['api_endpoints']['url_social_profiles_endpoint'] = [
+          '#type' => 'textfield',
+          '#title' => $this->t('Social Profiles'),
+          '#default_value' => $config->get('url_social_profiles_endpoint'),
+          '#required' => TRUE,
+      ];
 
     $form['api_endpoints']['url_delete_message_endpoint'] = [
       '#type' => 'textfield',
@@ -184,6 +191,7 @@ class Settings extends ConfigFormBase {
       ->set('url_token_endpoint', $form_state->getValue('url_token_endpoint'))
       ->set('url_post_message_endpoint', $form_state->getValue('url_post_message_endpoint'))
       ->set('url_post_media_endpoint', $form_state->getValue('url_post_media_endpoint'))
+      ->set('url_social_profiles_endpoint', $form_state->getValue('url_social_profiles_endpoint'))
       ->set('url_delete_message_endpoint', $form_state->getValue('url_delete_message_endpoint'))
       ->save();
     parent::submitForm($form, $form_state);

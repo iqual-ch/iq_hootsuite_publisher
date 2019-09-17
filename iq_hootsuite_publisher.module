@@ -1,5 +1,7 @@
 <?php
 
+use \GuzzleHttp\RequestOptions;
+
 function iq_hootsuite_publisher_preprocess_entity_add_list(&$variables)
 {
 
@@ -28,26 +30,57 @@ function iq_hootsuite_publisher_preprocess_entity_add_list(&$variables)
 }
 
 function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterface $entity) {
-  if( $entity->id() && $entity->getEntityType()->id() == 'assignment' && $entity->field_tg_social_profile_id->value ){
-    send_post( $entity );
-  }
+    $types = ['news', 'event'];
+
+    if ($entity->id() && in_array($entity->bundle(), $types)) {
+        $assignments = $entity->field_assignment;
+
+        foreach ($assignments as $assignment => $value) {
+            // If is social media type
+            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+                send_post( $entity , $value->get('entity')->getValue());
+            }
+        }
+    }
 }
 
 function iq_hootsuite_publisher_entity_insert(Drupal\Core\Entity\EntityInterface $entity) {
-  if( $entity->getEntityType()->id() == 'assignment' ){
-    send_post( $entity );
-  }
+    $types = ['news', 'event'];
+    if ($entity->id() && in_array($entity->bundle(), $types)) {
+        $assignments = $entity->field_assignment;
+
+        foreach ($assignments as $assignment => $value) {
+            // If is social media type
+            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+                send_post( $entity , $value->get('entity')->getValue());
+            }
+        }
+    }
 }
 
 function iq_hootsuite_publisher_entity_predelete(Drupal\Core\Entity\EntityInterface $entity) {
+    $types = ['news', 'event'];
+    if ($entity->id() && in_array($entity->bundle(), $types)) {
+        $assignments = $entity->field_assignment;
+
+        foreach ($assignments as $assignment => $value) {
+            // If is social media type
+            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+                delete_post($value->get('entity')->getValue());
+                return;
+            }
+        }
+    }
   if( $entity->getEntityType()->id() == 'assignment' ){
     delete_post( $entity );
   }
 }
 
-function send_post( &$entity ){
-  $config = \Drupal::config('iq_hootsuite_publisher.settings');
-  $configTokens = \Drupal::config('iq_hootsuite_publisher.tokens');
+function send_post( &$node, &$entity ){
+    $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
+
+    $config = \Drupal::config('iq_hootsuite_publisher.settings');
+
 
   // delete post from hootsuite if already exists
   if( $entity->field_tg_hootsuite_post_id->value ){
@@ -56,30 +89,58 @@ function send_post( &$entity ){
   }
 
   // send new post
-  $node = \Drupal::routeMatch()->getParameter('node');
   if ($node instanceof \Drupal\node\NodeInterface) {
 
     $entity_data = [
-      'node' => Drupal\node\Entity\Node::load($node->id()),
+      'node' => $node,
     ];
 
     $token_service = \Drupal::service('token');
 
     $request_body_message = [
-      'text'              => $token_service->replace($entity->field_post->value, $entity_data),
+      'text'              => strip_tags($token_service->replace($entity->field_post->value, $entity_data)),
       'socialProfileIds'  => [$entity->field_tg_social_profile_id->value],
-      'scheduledSendTime' => $entity->field_tg_date->value,
+      'scheduledSendTime' => $entity->field_tg_date->value . 'Z',
     ];
 
     if( $entity->field_image->value ){
-      $request_body_message['mediaUrls'] = [
-        ['url' => $token_service->replace($entity->field_image->value, $entity_data)]
-      ];
+      $imageId = $token_service->replace($entity->field_image->value, $entity_data);
+      $image = \Drupal\file\Entity\File::load($imageId);
+      if ($image != null) {
+          $id = upload_media($image);
+          // Max execution time of 2 seconds for the upload of the image.
+          $i = 0;
+
+          do {
+              sleep(0.1);
+              $i++;
+              if ($i > 20) {
+                  \Drupal::messenger()->addMessage('Image could not be uploaded', 'warning');
+                  break;
+              }
+              $hootsuite_response = $hootsuite_client->connect('get', $config->get('url_post_media_endpoint') . '/' . $id );
+              $state = json_decode($hootsuite_response->getContents(), true)['data']['state'];
+          }
+          while ($state!= 'READY');
+          if ($i <= 20) {
+              $request_body_message['media'] = [
+                  ['id' => $id]
+              ];
+          }
+      }
     }
 
-    // $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
-    // $hootsuite_post_id = $hootsuite_client->connect( 'post', 'endpoioint', '', $request_body_message );  // return id of post from hootsuite
-    // $entity->field_tg_hootsuite_post_id = $hootsuite_post_id;
+    $hootsuite_response = $hootsuite_client->connect('post', $config->get('url_post_message_endpoint'), null, $request_body_message );
+    $data = json_decode($hootsuite_response, true)['data'][0];
+
+    if ($data['state'] == 'SCHEDULED') {
+        \Drupal::messenger()->addMessage('The message has been successfully scheduled.');
+    }
+
+    $hootsuite_post_id = $data['id'];
+    $entity->field_tg_hootsuite_post_id = $hootsuite_post_id;
+    /** @var \Drupal\Core\Entity\Entity $entity */
+    $entity->save();
 
     \Drupal::logger('iq_hootsuite_publisher')->notice('sent post: '.$entity->id().serialize( $request_body_message ) );
   }
@@ -87,12 +148,48 @@ function send_post( &$entity ){
 
 
 function delete_post( &$entity ){
-  $request_body_delete = [
-    'messageId' => $entity->field_tg_hootsuite_post_id->value
-  ];
+    $config = \Drupal::config('iq_hootsuite_publisher.settings');
 
-//  $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
-//  $hootsuite_client->connect( 'delete', 'endpoioint', '', $request_body_delete );
+    $url = $config->get('url_post_message_endpoint') . '/' .$entity->field_tg_hootsuite_post_id->value;
+    $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
+
+    $hootsuite_client->connect('delete', $url);
 
   \Drupal::logger('iq_hootsuite_publisher')->notice('deleted post: '.$entity->id().'. Message body: '.serialize( $request_body_delete ) );
+}
+
+/**
+ * @param \Drupal\file\Entity\File $image
+ *
+ * @return mixed
+ * @throws \GuzzleHttp\Exception\GuzzleException
+ */
+function upload_media($image) {
+    $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
+    $client = \Drupal::httpClient();
+    $config = \Drupal::config('iq_hootsuite_publisher.settings');
+    $body = [
+        'mimeType' => $image->getMimeType(),
+        'sizeBytes' => filesize($image->getFileUri()),
+    ];
+    $result = $hootsuite_client->connect('post',  $config->get('url_post_media_endpoint'), null, $body);
+    $data = json_decode($result, true)['data'];
+    // Post the image to the upload URL.
+    $url = $data['uploadUrl'];
+    $request_options = [
+        RequestOptions::HEADERS =>  [
+            'Content-Type' => $image->getMimeType(),
+            'Content-Length' => filesize($image->getFileUri())
+        ],
+        RequestOptions::BODY => fopen($image->getFileUri(), 'r')
+    ];
+
+    try {
+        $response = $client->put($url, $request_options);
+    }
+    catch (Exception $e) {
+        \Drupal::messenger()->addMessage($e->getMessage());
+    }
+
+    return $data['id'];
 }
