@@ -8,11 +8,11 @@ function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterfac
     $types = ['news', 'event'];
 
     if ($entity->id() && in_array($entity->bundle(), $types)) {
-        $assignments = $entity->field_assignment;
+        $assignments = $entity->field_hs_assignment;
 
         foreach ($assignments as $assignment => $value) {
             // If is social media type
-            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+            if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
                 send_post($entity, $value->get('entity')->getValue());
             }
         }
@@ -23,11 +23,11 @@ function iq_hootsuite_publisher_entity_insert(Drupal\Core\Entity\EntityInterface
 {
     $types = ['news', 'event'];
     if ($entity->id() && in_array($entity->bundle(), $types)) {
-        $assignments = $entity->field_assignment;
+        $assignments = $entity->field_hs_assignment;
 
         foreach ($assignments as $assignment => $value) {
             // If is social media type
-            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+            if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
                 send_post($entity, $value->get('entity')->getValue());
             }
         }
@@ -38,11 +38,11 @@ function iq_hootsuite_publisher_entity_predelete(Drupal\Core\Entity\EntityInterf
 {
     $types = ['news', 'event'];
     if ($entity->id() && in_array($entity->bundle(), $types)) {
-        $assignments = $entity->field_assignment;
+        $assignments = $entity->field_hs_assignment;
 
         foreach ($assignments as $assignment => $value) {
             // If is social media type
-            if ($value->get('entity')->getValue()->field_tg_social_profile_id->value) {
+            if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
                 delete_post($value->get('entity')->getValue());
                 return;
             }
@@ -60,9 +60,9 @@ function send_post(&$node, &$entity)
     $config = \Drupal::config('iq_hootsuite_publisher.settings');
 
     // delete post from hootsuite if already exists
-    if ($entity->field_tg_hootsuite_post_id->value) {
+    if ($entity->field_hs_post_id->value) {
         delete_post($entity);
-        $entity->field_tg_hootsuite_post_id->value = null;
+        $entity->field_hs_post_id->value = null;
     }
 
     // send new post
@@ -75,13 +75,13 @@ function send_post(&$node, &$entity)
         $token_service = \Drupal::service('token');
 
         $request_body_message = [
-            'text' => html_entity_decode(strip_tags($token_service->replace($entity->field_post->value, $entity_data, ['clear' => true]))),
-            'socialProfileIds' => [$entity->field_tg_social_profile_id->value],
-            'scheduledSendTime' => $entity->field_tg_date->value . 'Z',
+            'text' => html_entity_decode(strip_tags($token_service->replace($entity->field_hs_post->value, $entity_data, ['clear' => true]))),
+            'socialProfileIds' => [$entity->field_hs_profile_id->value],
+            'scheduledSendTime' => $entity->field_hs_date->value . 'Z',
         ];
 
-        if ($entity->field_image->value) {
-            $imageId = $token_service->replace($entity->field_image->value, $entity_data, ['clear' => true]);
+        if ($entity->field_hs_image->value) {
+            $imageId = $token_service->replace($entity->field_hs_image->value, $entity_data, ['clear' => true]);
             $image = \Drupal\file\Entity\File::load($imageId);
             if ($image != null) {
                 $id = upload_media($image);
@@ -114,7 +114,7 @@ function send_post(&$node, &$entity)
         }
 
         $hootsuite_post_id = $data['id'];
-        $entity->field_tg_hootsuite_post_id = $hootsuite_post_id;
+        $entity->field_hs_post_id = $hootsuite_post_id;
         /** @var \Drupal\Core\Entity\Entity $entity */
         $entity->save();
 
@@ -126,7 +126,7 @@ function delete_post(&$entity)
 {
     $config = \Drupal::config('iq_hootsuite_publisher.settings');
 
-    $url = $config->get('url_post_message_endpoint') . '/' . $entity->field_tg_hootsuite_post_id->value;
+    $url = $config->get('url_post_message_endpoint') . '/' . $entity->field_hs_post_id->value;
     $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
 
     $hootsuite_client->connect('delete', $url);
