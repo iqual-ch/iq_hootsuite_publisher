@@ -1,5 +1,5 @@
 {
-    "name": "drupal/iq_hoosuite_publisher",
+    "name": "iqual/iq_hoosuite_publisher",
     "description": "Hootsuite extension for iq_publisher",
     "type": "drupal-module",
     "minimum-stability": "dev",
