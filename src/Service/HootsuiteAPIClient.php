@@ -100,7 +100,7 @@ class HootsuiteAPIClient {
 
     public function getAccessTokenByAuthCode($code = null) {
 
-        if (empty($this->configTokens->get('access_token')) && $code != null) {
+        if ($code != null) {
 
             $request_options = [
                 RequestOptions::HEADERS => [
