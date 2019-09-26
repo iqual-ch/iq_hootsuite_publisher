@@ -2,7 +2,6 @@
 
 use \GuzzleHttp\RequestOptions;
 
-
 function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterface $entity)
 {
     $types = ['news', 'event'];
@@ -55,6 +54,10 @@ function iq_hootsuite_publisher_entity_predelete(Drupal\Core\Entity\EntityInterf
 
 function send_post(&$node, &$entity)
 {
+    if ($entity->field_hs_date->date->getTimestamp() < time()) {
+        \Drupal::messenger()->addWarning('Posts cannot be scheduled in the past. Post for "' . $entity->field_hs_profile_name->value . '" has not been posted/changed on Hootsuite.');
+        return;
+    }
     $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
 
     $config = \Drupal::config('iq_hootsuite_publisher.settings');
@@ -125,12 +128,9 @@ function send_post(&$node, &$entity)
 function delete_post(&$entity)
 {
     $config = \Drupal::config('iq_hootsuite_publisher.settings');
-
     $url = $config->get('url_post_message_endpoint') . '/' . $entity->field_hs_post_id->value;
     $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
-
     $hootsuite_client->connect('delete', $url);
-
     \Drupal::logger('iq_hootsuite_publisher')->notice('deleted post: ' . $entity->id() . '. Message body: ' . serialize($request_body_delete));
 }
 
