@@ -2,7 +2,6 @@
 
 namespace Drupal\iq_hootsuite_publisher\Service;
 
-use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -10,14 +9,14 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 //use Google_Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\RequestOptions;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Class Hootsuite API Client Service.
  *
  * @package Drupal\iq_hootsuite_publisher\Service
  */
-class HootsuiteAPIClient {
+class HootsuiteAPIClient
+{
 
     /**
      * The logger factory.
@@ -71,9 +70,9 @@ class HootsuiteAPIClient {
     private $http_client;
 
     public function __construct(ConfigFactory $config,
-                                LoggerChannelFactoryInterface $loggerFactory,
-                                CacheBackendInterface $cacheBackend,
-                                ClientInterface $http_client) {
+        LoggerChannelFactoryInterface $loggerFactory,
+        CacheBackendInterface $cacheBackend,
+        ClientInterface $http_client) {
         $this->config = $config->get('iq_hootsuite_publisher.settings');
         $this->configTokens = $config->getEditable('iq_hootsuite_publisher.tokens');
 
@@ -88,18 +87,19 @@ class HootsuiteAPIClient {
         // $this->setAccessToken();
     }
 
-    public function createAuthUrl() {
+    public function createAuthUrl()
+    {
         $params = array(
-            'response_type' =>  'code',
-            'client_id'     =>  $this->config->get('client_id'),
-            'redirect_uri' => 'http'.($_SERVER['HTTP_HOST'] ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/iq_hootsuite_publisher/callback',
-            'scope' => 'offline'
+            'response_type' => 'code',
+            'client_id' => $this->config->get('client_id'),
+            'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
+            'scope' => 'offline',
         );
-        return $this->config->get('url_auth_endpoint').'?'.http_build_query($params);
+        return $this->config->get('url_auth_endpoint') . '?' . http_build_query($params);
     }
 
-    public function getAccessTokenByAuthCode($code = null) {
-
+    public function getAccessTokenByAuthCode($code = null)
+    {
         if ($code != null) {
 
             $request_options = [
@@ -110,28 +110,27 @@ class HootsuiteAPIClient {
                 ],
                 RequestOptions::FORM_PARAMS => [
                     'code' => $code,
-                    'redirect_uri' => 'http'.($_SERVER['HTTP_HOST'] ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/iq_hootsuite_publisher/callback',
+                    'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
                     'grant_type' => 'authorization_code',
                     'scope' => 'offline',
-                ]
+                ],
             ];
             try {
                 $token = $this->http_client->request('POST',
                     $this->config->get('url_token_endpoint'), $request_options);
-            }catch (\Exception $e) {
+            } catch (\Exception $e) {
                 var_dump($e->getMessage());
                 return false;
             }
             $response = json_decode($token->getBody(), true);
-            if($token->getStatusCode() == 200 && isset($response['access_token'])) {
+            if ($token->getStatusCode() == 200 && isset($response['access_token'])) {
                 $this->configTokens->set('access_token', $response['access_token']);
                 $this->configTokens->set('refresh_token', $response['refresh_token']);
                 $this->configTokens->save();
 
                 return true;
             }
-        } else if (!empty($this->configTokens->get('refresh_token'))){
-
+        } else if (!empty($this->configTokens->get('refresh_token'))) {
 
             $request_options = [
                 RequestOptions::HEADERS => [
@@ -141,20 +140,20 @@ class HootsuiteAPIClient {
                 ],
                 RequestOptions::FORM_PARAMS => [
                     'refresh_token' => $this->configTokens->get('refresh_token'),
-                    'redirect_uri' => 'http'.($_SERVER['HTTP_HOST'] ? 's' : '').'://'.$_SERVER['HTTP_HOST'].'/iq_hootsuite_publisher/callback',
+                    'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
                     'grant_type' => 'refresh_token',
                     'scope' => 'offline',
-                ]
+                ],
             ];
             // Refresh token.
             try {
                 $token = $this->http_client->request('post', $this->config->get('url_token_endpoint'), $request_options);
-            }catch (\Exception $e) {
+            } catch (\Exception $e) {
                 var_dump($e->getMessage());
                 return false;
             }
             $response = json_decode($token->getBody(), true);
-            if($token->getStatusCode() == 200 && $response['access_token']) {
+            if ($token->getStatusCode() == 200 && $response['access_token']) {
                 $this->configTokens->set('access_token', $response['access_token']);
                 $this->configTokens->set('refresh_token', $response['refresh_token']);
                 $this->configTokens->save();
@@ -164,14 +163,22 @@ class HootsuiteAPIClient {
         return false;
     }
 
+    public function connect($method, $endpoint, $query = null, $body = null)
+    {
+        if ($_SERVER['REMOTE_ADDR'] == '83.150.28.13') {
+        //     \Drupal::logger('iq_hootsuite_publisher')->notice('access token: ' . $this->configTokens->get('access_token'));
+        //     \Drupal::logger('iq_hootsuite_publisher')->notice('refresh token: ' .  $this->configTokens->get('refresh_token'));
+        //     // $this->getAccessTokenByAuthCode();
 
-    public function connect($method, $endpoint, $query = null, $body = null) {
+        //     \Drupal::logger('iq_hootsuite_publisher')->notice('access token: ' . $this->configTokens->get('access_token'));
+        //     \Drupal::logger('iq_hootsuite_publisher')->notice('refresh token: ' .  $this->configTokens->get('refresh_token'));
+        }
         $request_options = [
             RequestOptions::HEADERS => [
                 'Authorization' => 'Bearer ' . $this->configTokens->get('access_token'),
                 'Content-Type' => 'application/json',
-                'Accept' => '*/*'
-            ]
+                'Accept' => '*/*',
+            ],
         ];
         if (!empty($body)) {
             $data = json_encode($body);
@@ -185,43 +192,40 @@ class HootsuiteAPIClient {
                 $endpoint,
                 $request_options
             );
-        }
-        catch (\Exception $exception) {
-            if (strpos($exception->getMessage(), "401 Unauthorized") >= 0) {
+        } catch (\Exception $exception) {
+            if (strpos($exception->getMessage(), "401 Unauthorized") !== false || strpos($exception->getMessage(), "400 Bad Request") !== false) {
                 // Refresh token and resend request.
                 if ($this->getAccessTokenByAuthCode()) {
                     return $this->connect($method, $endpoint, $query, $body);
-                }
-                else {
+                } else {
                     drupal_set_message(t('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]), 'error');
                 }
-            }
-            else {
+            } else {
                 drupal_set_message(t('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]), 'error');
             }
             \Drupal::logger('pco_api')->error('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]);
-            return FALSE;
+            return false;
         }
 
         // Token expired
         if ($response->getStatusCode() == 400 || $response->getStatusCode() == 401 || $response->getStatusCode() == 403) {
             // Refresh token and resend request.
             if ($this->getAccessTokenByAuthCode()) {
-                $this->connect($method, $endpoint, $query, $body);
+                return $this->connect($method, $endpoint, $query, $body);
             }
         }
         // TODO: Possibly allow returning the whole body.
         return $response->getBody();
     }
 
-    private function setTokenCache($key, array $value) {
+    private function setTokenCache($key, array $value)
+    {
         // Save the token.
         $this->configTokens
             ->set($key, $value)
             ->save();
 
-        return TRUE;
+        return true;
     }
-
 
 }
