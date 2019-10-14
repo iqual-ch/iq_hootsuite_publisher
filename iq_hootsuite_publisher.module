@@ -8,6 +8,10 @@ function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterfac
 
     if ($entity->id() && in_array($entity->bundle(), $types)) {
         $assignments = $entity->field_hs_assignment;
+        if (!$entity->isPublished()) {
+            \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
+            return;
+        }
 
         foreach ($assignments as $assignment => $value) {
             // If is social media type
@@ -23,6 +27,10 @@ function iq_hootsuite_publisher_entity_insert(Drupal\Core\Entity\EntityInterface
     $types = ['news', 'event'];
     if ($entity->id() && in_array($entity->bundle(), $types)) {
         $assignments = $entity->field_hs_assignment;
+        if (!$entity->isPublished()) {
+            \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
+            return;
+        }
 
         foreach ($assignments as $assignment => $value) {
             // If is social media type
@@ -130,7 +138,7 @@ function delete_post(&$entity)
     $config = \Drupal::config('iq_hootsuite_publisher.settings');
     $url = $config->get('url_post_message_endpoint') . '/' . $entity->field_hs_post_id->value;
     $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
-    $hootsuite_client->connect('delete', $url);
+    $request_body_delete = $hootsuite_client->connect('delete', $url);
     \Drupal::logger('iq_hootsuite_publisher')->notice('deleted post: ' . $entity->id() . '. Message body: ' . serialize($request_body_delete));
 }
 
