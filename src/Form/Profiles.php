@@ -74,7 +74,7 @@ class Profiles extends ConfigFormBase
         $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
 
         $response = $hootsuite_client->connect('get', $config->get('url_social_profiles_endpoint'));
-        if ($response != null) {
+        if (!empty($response)) {
             $profiles = json_decode($response->getContents(), true)['data'];
             $form['profiles'] = [
                 '#type' => 'fieldset',
@@ -87,7 +87,7 @@ class Profiles extends ConfigFormBase
                     '#title' => $profile['socialNetworkUsername'],
                     '#default_value' => $config->get('social_profile_' . $profile['id']),
                     '#description' => $profile['type'],
-                    '#disabled' => $this->checkExistingAssignmentType($profile['id'])
+                    '#disabled' => $this->checkExistingAssignmentType($profile['id']),
                 ];
             }
 
@@ -259,10 +259,10 @@ class Profiles extends ConfigFormBase
     private function checkExistingAssignmentType($id)
     {
         $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo('assignment');
-        foreach($bundles as $bundleId => $bundle) {
-          if ('social_profile_' . $id == $bundleId) {
-            return true;
-          }
+        foreach ($bundles as $bundleId => $bundle) {
+            if ('social_profile_' . $id == $bundleId) {
+                return true;
+            }
         }
         return false;
     }
