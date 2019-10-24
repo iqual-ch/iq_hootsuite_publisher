@@ -119,7 +119,8 @@ class HootsuiteAPIClient
                 $token = $this->http_client->request('POST',
                     $this->config->get('url_token_endpoint'), $request_options);
             } catch (\Exception $e) {
-                var_dump($e->getMessage());
+                \Drupal::logger('iq_hootsuite_publisher')->error('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]);
+                drupal_set_message(t('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
                 return false;
             }
             $response = json_decode($token->getBody(), true);
@@ -149,7 +150,8 @@ class HootsuiteAPIClient
             try {
                 $token = $this->http_client->request('post', $this->config->get('url_token_endpoint'), $request_options);
             } catch (\Exception $e) {
-                var_dump($e->getMessage());
+                \Drupal::logger('iq_hootsuite_publisher')->error('Could not refresh token due to "%error"', ['%error' => $exception->getMessage()]);
+                drupal_set_message(t('Could not refresh token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
                 return false;
             }
             $response = json_decode($token->getBody(), true);
@@ -165,17 +167,11 @@ class HootsuiteAPIClient
 
     public function connect($method, $endpoint, $query = null, $body = null)
     {
-        if ($_SERVER['REMOTE_ADDR'] == '83.150.28.13') {
-        //     \Drupal::logger('iq_hootsuite_publisher')->notice('access token: ' . $this->configTokens->get('access_token'));
-        //     \Drupal::logger('iq_hootsuite_publisher')->notice('refresh token: ' .  $this->configTokens->get('refresh_token'));
-        //     // $this->getAccessTokenByAuthCode();
 
-        //     \Drupal::logger('iq_hootsuite_publisher')->notice('access token: ' . $this->configTokens->get('access_token'));
-        //     \Drupal::logger('iq_hootsuite_publisher')->notice('refresh token: ' .  $this->configTokens->get('refresh_token'));
-        }
+        $accessToken = $this->configTokens->get('access_token');
         $request_options = [
             RequestOptions::HEADERS => [
-                'Authorization' => 'Bearer ' . $this->configTokens->get('access_token'),
+                'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
                 'Accept' => '*/*',
             ],
@@ -193,7 +189,11 @@ class HootsuiteAPIClient
                 $request_options
             );
         } catch (\Exception $exception) {
-            if (strpos($exception->getMessage(), "401 Unauthorized") !== false || strpos($exception->getMessage(), "400 Bad Request") !== false) {
+            if (strpos($exception->getMessage(), "400 Bad Request") !== false) {
+                drupal_set_message(t('Failed to complete taks "%method" with error "%error"', ['%method' => $method, '%error' => $exception->getMessage()]), 'error');
+                return false;
+            }
+            if (strpos($exception->getMessage(), "401 Unauthorized") !== false) {
                 // Refresh token and resend request.
                 if ($this->getAccessTokenByAuthCode()) {
                     return $this->connect($method, $endpoint, $query, $body);
@@ -203,7 +203,7 @@ class HootsuiteAPIClient
             } else {
                 drupal_set_message(t('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]), 'error');
             }
-            \Drupal::logger('pco_api')->error('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]);
+            \Drupal::logger('iq_hootsuite_publisher')->error('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]);
             return false;
         }
 
