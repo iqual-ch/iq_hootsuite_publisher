@@ -91,6 +91,28 @@ function send_post(&$node, &$entity)
             'scheduledSendTime' => $entity->field_hs_date->value . 'Z',
         ];
 
+        // Add special data for pinterest
+        if ($entity->hasField('field_hs_pinterest_board')) {
+            if (!$entity->field_hs_pinterest_board->isEmpty()) {
+                $pinterestUrl = $entity->field_hs_pinterest_url->first()->getUrl()->toString();
+                if (empty($pinterestUrl)) {
+                    $pinterestUrl = $node->toUrl('canonical', ['absolute' => true])->toString();
+                }
+                $request_body_message['extendedInfo'] = [
+                    [
+                        'socialProfileType' => 'PINTEREST',
+                        'socialProfileId' => $entity->field_hs_profile_id->value,
+                        'data' => [
+                            'boardId' => $entity->field_hs_pinterest_board->value,
+                            'destinationUrl' => $pinterestUrl,
+                        ],
+                    ],
+                ];
+            } else {
+                \Drupal::messenger()->addWarning('Posts for pinterest cannot be scheduled without board. Post for "' . $entity->field_hs_profile_name->value . '" has not been posted/changed on Hootsuite.');
+                return;
+            }
+        }
 
         if (!$entity->field_hs_image->isEmpty()) {
             $imageId = $token_service->replace($entity->field_hs_image->value, $entity_data, ['clear' => true]);
@@ -171,7 +193,6 @@ function upload_media($image)
     if (empty($result)) {
         return -1;
     }
-
 
     $data = json_decode($result, true)['data'];
 
