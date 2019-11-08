@@ -86,7 +86,7 @@ class Profiles extends ConfigFormBase
                     '#type' => 'checkbox',
                     '#title' => $profile['socialNetworkUsername'],
                     '#default_value' => $config->get('social_profile_' . $profile['id']),
-                    '#description' => $profile['type'],
+                    '#description' => $profile['type'] . ' (' . $profile['id'] . ')',
                     '#disabled' => $this->checkExistingAssignmentType($profile['id']),
                 ];
             }
