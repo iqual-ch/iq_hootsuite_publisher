@@ -1,12 +1,11 @@
 <?php
 
 use \GuzzleHttp\RequestOptions;
+use \Drupal\node\Entity\Node;
 
-function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterface $entity)
+function iq_hootsuite_publisher_node_presave(Node  $entity)
 {
-    $types = ['news', 'event'];
-
-    if ($entity->id() && in_array($entity->bundle(), $types)) {
+   if ($entity->hasField('field_hs_assignment')) {
         $assignments = $entity->field_hs_assignment;
         if (!$entity->isPublished()) {
             \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
@@ -22,10 +21,9 @@ function iq_hootsuite_publisher_entity_presave(Drupal\Core\Entity\EntityInterfac
     }
 }
 
-function iq_hootsuite_publisher_entity_insert(Drupal\Core\Entity\EntityInterface $entity)
+function iq_hootsuite_publisher_node_insert(Node  $entity)
 {
-    $types = ['news', 'event'];
-    if ($entity->id() && in_array($entity->bundle(), $types)) {
+    if ($entity->hasField('field_hs_assignment')) {
         $assignments = $entity->field_hs_assignment;
         if (!$entity->isPublished()) {
             \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
@@ -41,10 +39,9 @@ function iq_hootsuite_publisher_entity_insert(Drupal\Core\Entity\EntityInterface
     }
 }
 
-function iq_hootsuite_publisher_entity_predelete(Drupal\Core\Entity\EntityInterface $entity)
+function iq_hootsuite_publisher_node_predelete(Node $entity)
 {
-    $types = ['news', 'event'];
-    if ($entity->id() && in_array($entity->bundle(), $types)) {
+    if ($entity->hasField('field_hs_assignment')) {
         $assignments = $entity->field_hs_assignment;
 
         foreach ($assignments as $assignment => $value) {
