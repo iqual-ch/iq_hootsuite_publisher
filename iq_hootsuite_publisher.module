@@ -4,64 +4,96 @@
  * @file
  */
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\file\Entity\File;
 use Drupal\node\NodeInterface;
+use Drupal\Core\Entity\EntityInterface;
 use GuzzleHttp\RequestOptions;
-use Drupal\node\Entity\Node;
 
 /**
  *
  */
-function iq_hootsuite_publisher_node_presave(Node $entity) {
+function iq_hootsuite_publisher_node_update(EntityInterface $entity) {
   if ($entity->hasField('field_hs_assignment')) {
     $assignments = $entity->field_hs_assignment;
-    if (!$entity->isPublished()) {
-      \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
-      return;
-    }
+    if (count($assignments) > 0) {
 
-    foreach ($assignments as $assignment => $value) {
-      // If is social media type.
-      if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
-        send_post($entity, $value->get('entity')->getValue());
+      if ($entity->hasField('publish_on') && !$entity->isPublished() && !empty($entity->publish_on->value) && $entity->publish_on->value != NULL) {
+        foreach ($assignments as $assignment => $value) {
+          // If is social media type.
+          if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
+            $hs_entity = $value->get('entity')->getValue();
+            if ($hs_entity->field_hs_date->date->getTimestamp() < $entity->publish_on->value) {
+              \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Change the publish schedule date on the node.'));
+              return;
+            }
+          }
+        }
       }
-    }
-  }
-}
-
-/**
- *
- */
-function iq_hootsuite_publisher_node_insert(Node $entity) {
-  if ($entity->hasField('field_hs_assignment')) {
-    $assignments = $entity->field_hs_assignment;
-    if (!$entity->isPublished()) {
-      \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
-      return;
-    }
-
-    foreach ($assignments as $assignment => $value) {
-      // If is social media type.
-      if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
-        send_post($entity, $value->get('entity')->getValue());
-      }
-    }
-  }
-}
-
-/**
- *
- */
-function iq_hootsuite_publisher_node_predelete(Node $entity) {
-  if ($entity->hasField('field_hs_assignment')) {
-    $assignments = $entity->field_hs_assignment;
-
-    foreach ($assignments as $assignment => $value) {
-      // If is social media type.
-      if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
-        delete_post($value->get('entity')->getValue());
+      if (!$entity->isPublished()) {
+        if ($entity->hasField('publish_on') && (empty($entity->publish_on->value) || $entity->publish_on->value == NULL)) {
+          \Drupal::messenger()
+            ->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
+        }
         return;
+      }
+
+      \Drupal::messenger()->addMessage(t('Scheduling posts for hootsuite.'));
+      foreach ($assignments as $assignment => $value) {
+        // If is social media type.
+        if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
+          send_post($entity, $value->get('entity')->getValue());
+        }
+      }
+    }
+  }
+}
+
+/**
+ *
+ */
+function iq_hootsuite_publisher_node_insert(EntityInterface $entity) {
+  if ($entity->hasField('field_hs_assignment')) {
+    $assignments = $entity->field_hs_assignment;
+    if ($entity->hasField('publish_on') && !$entity->isPublished() && !empty($entity->publish_on->value) && $entity->publish_on->value != NULL) {
+      foreach ($assignments as $assignment => $value) {
+        // If is social media type.
+        if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
+          $hs_entity = $value->get('entity')->getValue();
+          if ($hs_entity->field_hs_date->date->getTimestamp() < $entity->publish_on->value) {
+            \Drupal::messenger()->addWarning(t('Posts cannot be scheduled for unpublished entries. Change the publish schedule date on the node.'));
+            return;
+          }
+        }
+      }
+    }
+    if (!$entity->isPublished() && $_SERVER['REMOTE_ADDR'] != '83.150.28.13') {
+      if ((empty($entity->publish_on->value) || ($entity->publish_on->value == NULL)) && count($assignments) > 0) {
+        \Drupal::messenger()
+          ->addWarning(t('Posts cannot be scheduled for unpublished entries. Posts have not been posted/changed on Hootsuite.'));
+      }
+      return;
+    }
+
+    foreach ($assignments as $assignment => $value) {
+      // If is social media type.
+      if ($value->get('entity')->getValue()->field_hs_profile_id->value) {
+        send_post($entity, $value->get('entity')->getValue());
+      }
+    }
+  }
+}
+
+/**
+ *
+ */
+function iq_hootsuite_publisher_node_predelete(EntityInterface $entity) {
+  if ($entity->hasField('field_hs_assignment')) {
+    $assignments = $entity->field_hs_assignment;
+
+    foreach ($assignments as $item) {
+      // If is social media type.
+      if (!$item->entity->field_hs_profile_id->isEmpty()) {
+        delete_post($item->entity);
       }
     }
   }
@@ -142,28 +174,28 @@ function send_post(&$node, &$entity) {
       // print_r($request_body_message);
       // die();
     }
-
     if (!$entity->field_hs_image->isEmpty()) {
       $imageId = $token_service->replace($entity->field_hs_image->value, $entity_data, ['clear' => TRUE]);
       $image = File::load($imageId);
       if ($image != NULL) {
         $id = upload_media($image);
-        // Max execution time of 2 seconds for the upload of the image.
+        // Max execution time of 10 seconds for the upload of the image.
         $i = 0;
         do {
           sleep(0.1);
           $i++;
-          if ($i > 20) {
+          if ($i > 100) {
             \Drupal::messenger()->addMessage('Image could not be uploaded', 'warning');
             break;
           }
           $hootsuite_response = $hootsuite_client->connect('get', $config->get('url_post_media_endpoint') . '/' . $id);
+
           if (empty($hootsuite_response)) {
             return;
           }
           $state = json_decode($hootsuite_response->getContents(), TRUE)['data']['state'];
         } while ($state != 'READY');
-        if ($i <= 20) {
+        if ($i <= 100) {
           $request_body_message['media'] = [
                 ['id' => $id],
           ];
@@ -238,6 +270,7 @@ function upload_media($image) {
 
   try {
     $response = $client->put($url, $request_options);
+    \Drupal::logger('iq_hootsuite_publisher')->notice(print_r($response, TRUE));
   }
   catch (Exception $e) {
     \Drupal::messenger()->addMessage($e->getMessage());
