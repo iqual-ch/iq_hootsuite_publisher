@@ -82,6 +82,13 @@ class HootsuitePostManager {
     if (($id = $this->uploadImage($assignment, $entityData)) !== FALSE) {
       $requestBody['media'] = [['id' => $id]];
     }
+    else {
+      // \Drupal::messenger()->addError(
+      //     t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
+      //     ['@profile' => $assignment->field_hs_profile_name->value])
+      // );
+      // return;
+    }
 
     if (!empty($extendedInfo = $this->augmentForPinterest($assignment, $entity, $requestBody))) {
       $requestBody['extendedInfo'] = $extendedInfo;
@@ -94,7 +101,7 @@ class HootsuitePostManager {
 
     $data = json_decode($response, TRUE)['data'][0];
 
-    if ($data['state'] == 'SCHEDULED') {
+    if ($data && $data['state'] == 'SCHEDULED') {
       $hootsuite_post_id = $data['id'];
       $assignment->field_hs_post_id = $hootsuite_post_id;
       /** @var \Drupal\Core\Entity\Entity $entity */
@@ -116,9 +123,6 @@ class HootsuitePostManager {
     if (!$update) {
       \Drupal::logger('iq_hootsuite_publisher')->notice(t('Deleted post for @profile with id @id.'), ['@profile' => $assignment->field_hs_profile_name->value, '@id' => $assignment->field_hs_post_id->value]);
       \Drupal::messenger()->addMessage(t('Deleted post for @profile.'), ['@profile' => $assignment->field_hs_profile_name->value]);
-    }
-    if (empty($response)) {
-      return;
     }
   }
 
@@ -146,7 +150,7 @@ class HootsuitePostManager {
         return $extendedInfo;
       }
       else {
-        \Drupal::messenger()->addWarning(
+        \Drupal::messenger()->addError(
           t('Post for @profile has not been posted/changed on Hootsuite due to missing board id.',
          ['@profile' => $assignment->field_hs_profile_name->value])
         );
@@ -196,11 +200,11 @@ class HootsuitePostManager {
     if ($this->uploadToAWS($image, $data['uploadUrl'])) {
       $i = 0;
       do {
-        sleep(0.1);
+        sleep(1);
         $i++;
-        if ($i > 200) {
-          \Drupal::messenger()->addMessage('Image could not be uploaded', 'warning');
-          break;
+        if ($i > 20) {
+          \Drupal::messenger()->addMessage('Image could not be uploaded, waited for 20 seconds', 'warning');
+          return false;
         }
         $response = $this->hootsuiteClient->connect('get', $this->config->get('url_post_media_endpoint') . '/' . $id);
         if (empty($response)) {
