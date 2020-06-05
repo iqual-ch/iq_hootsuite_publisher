@@ -49,3 +49,12 @@ function iq_hootsuite_publisher_assignment_predelete(EntityInterface $entity) {
   $postManager = \Drupal::service('iq_hootsuite_publisher.post_manager');
   $postManager->deletePost($entity);
 }
+
+/**
+ *
+ */
+function iq_hootsuite_publisher_entity_translation_create(EntityInterface $translation) {
+  if ($translation->hasField('field_hs_assignment')) {
+    $translation->field_hs_assignment->setValue([]);
+  }
+}
