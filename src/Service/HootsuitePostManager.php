@@ -79,15 +79,22 @@ class HootsuitePostManager {
       'scheduledSendTime' => $assignment->field_hs_date->value . 'Z',
     ];
 
-    if (($id = $this->uploadImage($assignment, $entityData)) !== FALSE) {
-      $requestBody['media'] = [['id' => $id]];
-    }
-    else {
-      // \Drupal::messenger()->addError(
-      //     t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
-      //     ['@profile' => $assignment->field_hs_profile_name->value])
-      // );
-      // return;
+    if (!$assignment->field_hs_image->isEmpty()) {
+      $imageId = $this->tokenService->replace($assignment->field_hs_image->value, $entityData, ['clear' => TRUE]);
+      $image = File::load($imageId);
+
+      if ($image != NULL) {
+        if (($id = $this->uploadImage($image)) !== FALSE) {
+          $requestBody['media'] = [['id' => $id]];
+        }
+        else {
+          \Drupal::messenger()->addError(
+              t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
+              ['@profile' => $assignment->field_hs_profile_name->value])
+            );
+          return;
+        }
+      }
     }
 
     if (!empty($extendedInfo = $this->augmentForPinterest($assignment, $entity, $requestBody))) {
@@ -163,21 +170,15 @@ class HootsuitePostManager {
   /**
    *
    */
-  public function uploadImage(Assignment $assignment, array $entityData) {
-    if (!$assignment->field_hs_image->isEmpty()) {
-      $imageId = $this->tokenService->replace($assignment->field_hs_image->value, $entityData, ['clear' => TRUE]);
-      $image = File::load($imageId);
-      if ($image != NULL) {
-        if (!empty($this->images[$image->id()])) {
-          return $this->images[$image->id()];
-        }
-        else {
-          $id = $this->registerImage($image);
-          if ($id) {
-            $this->images[$image->id()] = $id;
-            return $id;
-          }
-        }
+  public function uploadImage(File $image) {
+    if (!empty($this->images[$image->id()])) {
+      return $this->images[$image->id()];
+    }
+    else {
+      $id = $this->registerImage($image);
+      if ($id) {
+        $this->images[$image->id()] = $id;
+        return $id;
       }
     }
     return FALSE;
@@ -204,7 +205,7 @@ class HootsuitePostManager {
         $i++;
         if ($i > 20) {
           \Drupal::messenger()->addMessage('Image could not be uploaded, waited for 20 seconds', 'warning');
-          return false;
+          return FALSE;
         }
         $response = $this->hootsuiteClient->connect('get', $this->config->get('url_post_media_endpoint') . '/' . $id);
         if (empty($response)) {
