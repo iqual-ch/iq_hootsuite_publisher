@@ -205,6 +205,7 @@ class HootsuitePostManager {
         $i++;
         if ($i > 20) {
           \Drupal::messenger()->addMessage('Image could not be uploaded, waited for 20 seconds', 'warning');
+          \Drupal::logger('iq_hootsuite_publisher')->warning('Timeout on ready state for image with id @id.', ['@id' => $id]);
           return FALSE;
         }
         $response = $this->hootsuiteClient->connect('get', $this->config->get('url_post_media_endpoint') . '/' . $id);
@@ -213,6 +214,7 @@ class HootsuitePostManager {
         }
         $state = json_decode($response->getContents(), TRUE)['data']['state'];
       } while ($state != 'READY');
+      \Drupal::logger('iq_hootsuite_publisher')->notice('Ready state for image id @id.', ['@id' => $id]);
       return $id;
     }
     return FALSE;
