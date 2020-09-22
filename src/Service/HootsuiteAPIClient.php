@@ -158,8 +158,8 @@ class HootsuiteAPIClient {
         $token = $this->http_client->request('post', $this->config->get('url_token_endpoint'), $request_options);
       }
       catch (\Exception $e) {
-        \Drupal::logger('iq_hootsuite_publisher')->error('Could not refresh token due to "%error"', ['%error' => $exception->getMessage()]);
-        drupal_set_message(t('Could not refresh token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
+        \Drupal::logger('iq_hootsuite_publisher')->error('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]);
+        drupal_set_message(t('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]), 'error');
         return FALSE;
       }
       $response = json_decode($token->getBody(), TRUE);
