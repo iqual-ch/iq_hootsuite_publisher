@@ -125,6 +125,9 @@ class HootsuitePostManager {
    *
    */
   public function deletePost(Assignment &$assignment, $update = FALSE) {
+    if ($assignment->field_hs_date->date->getTimestamp() < time()) {
+      return;
+    }
     $url = $this->config->get('url_post_message_endpoint') . '/' . $assignment->field_hs_post_id->value;
     $response = $this->hootsuiteClient->connect('delete', $url);
     if (!$update) {
@@ -258,6 +261,9 @@ class HootsuitePostManager {
         \Drupal::messenger()->addWarning(t('Cannot schedule post for @profile for unpublished entry.', ['@name' => $assignment->field_hs_profile_name->value]));
         return FALSE;
       }
+    }
+    if ($assignment->field_hs_date->date->getTimestamp() < time()) {
+      return FALSE;
     }
     return TRUE;
   }
