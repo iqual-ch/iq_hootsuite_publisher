@@ -125,6 +125,9 @@ class HootsuitePostManager {
    *
    */
   public function deletePost(Assignment &$assignment, $update = FALSE) {
+    if (!$assignment->hasField('field_hs_post_id') || $assignment->field_hs_post_id->isEmpty()) {
+      return;
+    }
     if ($assignment->field_hs_date->date->getTimestamp() < time()) {
       return;
     }
