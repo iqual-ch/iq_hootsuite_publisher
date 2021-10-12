@@ -2,7 +2,7 @@ name: iq_hootsuite_publisher
 description: Hootsuite extension for iq_publisher.
 type: module
 package: 'iqual'
-core: 8.x
+core_version_requirement: ^8.8 || ^9
 configure: iq_hootsuite_publisher.settings
 
 dependencies:
