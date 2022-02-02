@@ -4,7 +4,7 @@
     "type": "drupal-module",
     "minimum-stability": "dev",
     "require": {
-        "iqual/iq_publisher": "*",
+        "iqual/iq_publisher": "^2.0",
         "drupal/oauth2_client": "^2.0"
     }
 }
