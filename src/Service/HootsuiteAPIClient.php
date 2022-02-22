@@ -126,7 +126,7 @@ class HootsuiteAPIClient {
       }
       catch (\Exception $e) {
         \Drupal::logger('iq_hootsuite_publisher')->error('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]);
-        drupal_set_message(t('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
+        Drupal::messenger()->addMessage(t('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
         return FALSE;
       }
       $response = json_decode($token->getBody(), TRUE);
@@ -159,7 +159,7 @@ class HootsuiteAPIClient {
       }
       catch (\Exception $e) {
         \Drupal::logger('iq_hootsuite_publisher')->error('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]);
-        drupal_set_message(t('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]), 'error');
+        Drupal::messenger()->addMessage(t('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]), 'error');
         return FALSE;
       }
       $response = json_decode($token->getBody(), TRUE);
