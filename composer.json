@@ -1,7 +1,7 @@
 {
     "name": "iqual/iq_hootsuite_publisher",
     "description": "Hootsuite extension for iq_publisher",
-    "type": "drupal-module",
+    "type": "drupal-custom-module",
     "minimum-stability": "dev",
     "require": {
         "iqual/iq_publisher": "^2.0",
