@@ -1,7 +1,7 @@
 services:
   iq_hootsuite_publisher.client:
     class: Drupal\iq_hootsuite_publisher\Service\HootsuiteAPIClient
-    arguments: ['@config.factory', '@logger.factory', '@cache.default', '@http_client']
+    arguments: ['@config.factory', '@logger.factory', '@http_client', '@messenger']
   iq_hootsuite_publisher.post_manager:
     class: Drupal\iq_hootsuite_publisher\Service\HootsuitePostManager
-    arguments: ['@iq_hootsuite_publisher.client', '@token']
+    arguments: ['@iq_hootsuite_publisher.client', '@token', '@config.factory', '@http_client', '@logger.factory', '@messenger']

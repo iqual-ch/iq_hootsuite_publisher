@@ -2,10 +2,9 @@
 
 namespace Drupal\iq_hootsuite_publisher\Service;
 
-use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
-
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\RequestOptions;
 
@@ -19,9 +18,9 @@ class HootsuiteAPIClient {
   /**
    * The logger factory.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
-  protected $loggerFactory;
+  protected $logger;
 
   /**
    * Uneditable Config.
@@ -31,65 +30,51 @@ class HootsuiteAPIClient {
   private $config;
 
   /**
-   * Cache.
-   *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
-   */
-  private $cacheBackend;
-
-  /**
    * Editable Tokens Config.
    *
-   * @var \Drupal\Core\Config\Config|\Drupal\Core\Config\ImmutableConfig
+   * @var \Drupal\Core\Config\Config
    */
   private $configTokens;
 
   /**
-   * Callback Controller constructor.
+   * The http client.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config
-   *   An instance of ConfigFactory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   LoggerChannelFactoryInterface.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
-   *   Cache Backend.
+   * @var \GuzzleHttp\ClientInterface
    */
+  protected $httpClient;
 
   /**
-   * Http client.
+   * The messenger.
    *
-   * @param \Drupal\Core\Config\ConfigFactory $config
-   *   An instance of ConfigFactory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   LoggerChannelFactoryInterface.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cacheBackend
-   *   Cache Backend.
+   * @var \Drupal\Core\Messenger\Messenger
    */
-  private $http_client;
+  protected $messenger;
 
   /**
+   * Create a new instance.
    *
+   * @param \Drupal\Core\Config\ConfigFactory $config
+   *   The config factory.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   The logger factory.
+   * @param \GuzzleHttp\ClientInterface $http_client
+   *   The http client.
+   * @param \Drupal\Core\Messenger\Messenger $messenger
+   *   The messenger.
    */
   public function __construct(ConfigFactory $config,
         LoggerChannelFactoryInterface $loggerFactory,
-        CacheBackendInterface $cacheBackend,
-        ClientInterface $http_client) {
+        ClientInterface $http_client,
+        Messenger $messenger) {
     $this->config = $config->get('iq_hootsuite_publisher.settings');
     $this->configTokens = $config->getEditable('iq_hootsuite_publisher.tokens');
-
-    $this->loggerFactory = $loggerFactory;
-    $this->cacheBackend = $cacheBackend;
-
-    // // Add the client without tokens.
-    $this->http_client = $http_client;
-
-    // // Check and add tokens.
-    // // Tokens wont always be set or valid, so this is a 2 step process.
-    // $this->setAccessToken();
+    $this->logger = $loggerFactory->get('iq_hootsuite_publisher');
+    $this->httpClient = $http_client;
+    $this->messenger = $messenger;
   }
 
   /**
-   *
+   * Create the authentication url based on config.
    */
   public function createAuthUrl() {
     $params = [
@@ -102,11 +87,13 @@ class HootsuiteAPIClient {
   }
 
   /**
+   * Get and save access tokens.
    *
+   * @param string $code
+   *   The code (optional).
    */
-  public function getAccessTokenByAuthCode($code = NULL) {
+  public function getAccessTokenByAuthCode(string $code = NULL) {
     if ($code != NULL) {
-
       $request_options = [
         RequestOptions::HEADERS => [
           'Authorization' => 'Basic ' . base64_encode($this->config->get('client_id') . ':' . $this->config->get('client_secret')),
@@ -121,12 +108,20 @@ class HootsuiteAPIClient {
         ],
       ];
       try {
-        $token = $this->http_client->request('POST',
+        $token = $this->httpClient->request('POST',
               $this->config->get('url_token_endpoint'), $request_options);
       }
       catch (\Exception $e) {
-        \Drupal::logger('iq_hootsuite_publisher')->error('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]);
-        Drupal::messenger()->addMessage(t('Could not acquire token due to "%error"', ['%error' => $exception->getMessage()]), 'error');
+        $this->logger->error(
+          'Could not acquire token due to "%error"',
+          ['%error' => $e->getMessage()]
+        );
+        $this->messenger->addError(
+          t(
+            'Could not acquire token due to "%error"',
+            ['%error' => $e->getMessage()]
+          )
+        );
         return FALSE;
       }
       $response = json_decode($token->getBody(), TRUE);
@@ -155,11 +150,11 @@ class HootsuiteAPIClient {
       ];
       // Refresh token.
       try {
-        $token = $this->http_client->request('post', $this->config->get('url_token_endpoint'), $request_options);
+        $token = $this->httpClient->request('post', $this->config->get('url_token_endpoint'), $request_options);
       }
       catch (\Exception $e) {
-        \Drupal::logger('iq_hootsuite_publisher')->error('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]);
-        Drupal::messenger()->addMessage(t('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]), 'error');
+        $this->logger->error('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]);
+        $this->messenger->addError(t('Could not refresh token due to "%error"', ['%error' => $e->getMessage()]));
         return FALSE;
       }
       $response = json_decode($token->getBody(), TRUE);
@@ -174,9 +169,18 @@ class HootsuiteAPIClient {
   }
 
   /**
+   * Connect to api to send or retrieve data.
    *
+   * @param string $method
+   *   The method to use (get, post, put etc.)
+   * @param string $endpoint
+   *   The endpoint to call.
+   * @param string $query
+   *   The query parameters to send (optional).
+   * @param array $body
+   *   The body to send (optional).
    */
-  public function connect($method, $endpoint, $query = NULL, $body = NULL) {
+  public function connect(string $method, string $endpoint, string $query = NULL, array $body = NULL) {
 
     $accessToken = $this->configTokens->get('access_token');
     $request_options = [
@@ -194,14 +198,20 @@ class HootsuiteAPIClient {
       $request_options[RequestOptions::QUERY] = $query;
     }
     try {
-      $response = $this->http_client->{$method}(
+      $response = $this->httpClient->{$method}(
             $endpoint,
             $request_options
         );
     }
     catch (\Exception $exception) {
       if (strpos($exception->getMessage(), "400 Bad Request") !== FALSE) {
-        \Drupal::logger('iq_hootsuite_publisher')->error('Failed to complete taks "%method" with error "%error"', ['%method' => $method, '%error' => $exception->getMessage()]);
+        $this->logger->error(
+          'Failed to complete taks "%method" with error "%error"',
+          [
+            '%method' => $method,
+            '%error' => $exception->getMessage(),
+          ]
+        );
         return FALSE;
       }
       if (strpos($exception->getMessage(), "401 Unauthorized") !== FALSE) {
@@ -210,7 +220,7 @@ class HootsuiteAPIClient {
           return $this->connect($method, $endpoint, $query, $body);
         }
       }
-      \Drupal::logger('iq_hootsuite_publisher')->error('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]);
+      $this->logger->error('Failed to complete Planning Center Task "%error"', ['%error' => $exception->getMessage()]);
       return FALSE;
     }
 
@@ -221,20 +231,8 @@ class HootsuiteAPIClient {
         return $this->connect($method, $endpoint, $query, $body);
       }
     }
-    // TODO: Possibly allow returning the whole body.
+    // @todo Possibly allow returning the whole body.
     return $response->getBody();
-  }
-
-  /**
-   *
-   */
-  private function setTokenCache($key, array $value) {
-    // Save the token.
-    $this->configTokens
-      ->set($key, $value)
-      ->save();
-
-    return TRUE;
   }
 
 }

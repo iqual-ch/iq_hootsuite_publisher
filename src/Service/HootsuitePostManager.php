@@ -2,8 +2,11 @@
 
 namespace Drupal\iq_hootsuite_publisher\Service;
 
+use GuzzleHttp\Client;
+use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Utility\Token;
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Messenger\Messenger;
 use Drupal\iq_publisher\Entity\Assignment;
 use Drupal\node\NodeInterface;
 use Drupal\file\Entity\File;
@@ -16,36 +19,102 @@ use GuzzleHttp\RequestOptions;
  */
 class HootsuitePostManager {
 
+  /**
+   * The api client for hootsuite.
+   *
+   * @var HootsuiteAPIClient
+   */
   protected $hootsuiteClient = NULL;
+
+  /**
+   * The token service.
+   *
+   * @var \Drupal\Core\Utility\Token
+   */
   protected $tokenService = NULL;
+
+  /**
+   * The configuration.
+   *
+   * @var \Drupal\Core\Config\ImmutableConfig
+   */
   protected $config = NULL;
+
+  /**
+   * The http client for image upload to aws.
+   *
+   * @var \GuzzleHttp\Client
+   */
+  protected $httpClient = NULL;
+
+  /**
+   * The logger service.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
+   */
+  protected $logger = NULL;
+
+  /**
+   * The messenger service.
+   *
+   * @var \Drupal\Core\Messenger\Messenger
+   */
+  protected $messenger = NULL;
+
+  /**
+   * The field name for assignment.
+   *
+   * @var string
+   */
   protected $assignmentField = 'field_hs_assignment';
+
+  /**
+   * The images to upload.
+   *
+   * @var array
+   */
   protected $images = [];
 
   /**
    * Create a new instance.
    *
-   * @param \Drupal\pagedesigner\Service\HandlerPluginManager $handler_manager
-   *   The handler manager from which to retrieve the element handlers.
-   * @param Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
-   *   The event dispatcher to dispatch events.
+   * @param HootsuiteAPIClient $hootsuite_client
+   *   The api client for hootsuite.
+   * @param \Drupal\Core\Utility\Token $token_service
+   *   The token service.
+   * @param \Drupal\Core\Config\ConfigFactory $config
+   *   The configuration.
+   * @param \GuzzleHttp\Client $http_client
+   *   The http client for image upload to aws.
+   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
+   *   The logger service.
+   * @param \Drupal\Core\Messenger\Messenger $messenger
+   *   The messenger service.
    */
-  public function __construct(HootsuiteAPIClient $hootsuite_client, Token $token_service) {
+  public function __construct(
+    HootsuiteAPIClient $hootsuite_client,
+    Token $token_service,
+    ConfigFactory $config,
+    Client $http_client,
+    LoggerChannelFactoryInterface $loggerFactory,
+    Messenger $messenger
+  ) {
     $this->hootsuiteClient = $hootsuite_client;
     $this->tokenService = $token_service;
-    $this->config = \Drupal::config('iq_hootsuite_publisher.settings');
+    $this->config = $config->get('iq_hootsuite_publisher.settings');
+    $this->httpClient = $http_client;
+    $this->logger = $loggerFactory->get('iq_hootsuite_publisher');
+    $this->messenger = $messenger;
   }
 
   /**
-   * Undocumented function.
+   * Handle a node.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *
-   * @return void
+   * @param \Drupal\node\NodeInterface $entity
+   *   The node to handle.
    */
   public function handleNode(NodeInterface $entity) {
     if ($entity->hasField($this->assignmentField)) {
-
       $assignments = $entity->get($this->assignmentField);
       if (count($assignments) > 0) {
         foreach ($assignments as $item) {
@@ -60,7 +129,12 @@ class HootsuitePostManager {
   }
 
   /**
+   * Send an assignment to hootsuite.
    *
+   * @param \Drupal\node\NodeInterface $entity
+   *   The node to post the assignment of.
+   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   *   The assignment to post.
    */
   public function sendPost(NodeInterface &$entity, Assignment &$assignment) {
     // Delete post from hootsuite if already exists.
@@ -88,7 +162,7 @@ class HootsuitePostManager {
           $requestBody['media'] = [['id' => $id]];
         }
         else {
-          \Drupal::messenger()->addError(
+          $this->messenger->addError(
               t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
               ['@profile' => $assignment->field_hs_profile_name->value])
             );
@@ -97,7 +171,7 @@ class HootsuitePostManager {
       }
     }
 
-    if (!empty($extendedInfo = $this->augmentForPinterest($assignment, $entity, $requestBody))) {
+    if (!empty($extendedInfo = $this->augmentForPinterest($entity, $assignment))) {
       $requestBody['extendedInfo'] = $extendedInfo;
     }
 
@@ -113,16 +187,33 @@ class HootsuitePostManager {
       $assignment->field_hs_post_id = $hootsuite_post_id;
       /** @var \Drupal\Core\Entity\Entity $entity */
       $assignment->save();
-      \Drupal::logger('iq_hootsuite_publisher')->notice(t('Created post for @profile with id @id.'), ['@profile' => $assignment->field_hs_profile_name->value, '@id' => $assignment->field_hs_post_id->value]);
-      \Drupal::messenger()->addMessage('The post for @profile has been successfully scheduled.', ['@profile' => $assignment->field_hs_profile_name->value]);
+      $this->logger->notice(
+        t('Created post for @profile with id @id.'),
+        [
+          '@profile' => $assignment->field_hs_profile_name->value,
+          '@id' => $assignment->field_hs_post_id->value,
+        ]
+      );
+      $this->messenger->addMessage(
+        'The post for @profile has been successfully scheduled.',
+        ['@profile' => $assignment->field_hs_profile_name->value]
+      );
     }
     else {
-      \Drupal::messenger()->addWarning('Failed posting for @profile.', ['@profile' => $assignment->field_hs_profile_name->value]);
+      $this->messenger->addWarning(
+        'Failed posting for @profile.',
+        ['@profile' => $assignment->field_hs_profile_name->value]
+      );
     }
   }
 
   /**
+   * Delete an assignment from Hootsuite.
    *
+   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   *   The assignment to delete.
+   * @param bool $update
+   *   Whether to post info about the deletion.
    */
   public function deletePost(Assignment &$assignment, $update = FALSE) {
     if (!$assignment->hasField('field_hs_post_id') || $assignment->field_hs_post_id->isEmpty()) {
@@ -132,17 +223,31 @@ class HootsuitePostManager {
       return;
     }
     $url = $this->config->get('url_post_message_endpoint') . '/' . $assignment->field_hs_post_id->value;
-    $response = $this->hootsuiteClient->connect('delete', $url);
+    $this->hootsuiteClient->connect('delete', $url);
     if (!$update) {
-      \Drupal::logger('iq_hootsuite_publisher')->notice(t('Deleted post for @profile with id @id.'), ['@profile' => $assignment->field_hs_profile_name->value, '@id' => $assignment->field_hs_post_id->value]);
-      \Drupal::messenger()->addMessage(t('Deleted post for @profile.'), ['@profile' => $assignment->field_hs_profile_name->value]);
+      $this->logger->notice(
+        t('Deleted post for @profile with id @id.'),
+        [
+          '@profile' => $assignment->field_hs_profile_name->value,
+          '@id' => $assignment->field_hs_post_id->value,
+        ]
+      );
+      $this->messenger->addMessage(
+        t('Deleted post for @profile.'),
+        ['@profile' => $assignment->field_hs_profile_name->value]
+      );
     }
   }
 
   /**
+   * Get extended info for Pinterested.
    *
+   * @param \Drupal\node\NodeInterface $entity
+   *   The entity.
+   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   *   The assignment.
    */
-  protected function augmentForPinterest(Assignment $assignment, NodeInterface $entity) {
+  protected function augmentForPinterest(NodeInterface $entity, Assignment $assignment) {
     // Add special data for pinterest.
     if ($assignment->hasField('field_hs_pinterest_board')) {
       if (!$assignment->field_hs_pinterest_board->isEmpty()) {
@@ -163,18 +268,21 @@ class HootsuitePostManager {
         return $extendedInfo;
       }
       else {
-        \Drupal::messenger()->addError(
+        $this->messenger->addError(
           t('Post for @profile has not been posted/changed on Hootsuite due to missing board id.',
          ['@profile' => $assignment->field_hs_profile_name->value])
         );
-        return FALSE;
+        return NULL;
       }
     }
-    return FALSE;
+    return NULL;
   }
 
   /**
+   * Upload image to hootsuite.
    *
+   * @param \Drupal\file\Entity\File $image
+   *   The file to upload.
    */
   public function uploadImage(File $image) {
     if (!empty($this->images[$image->id()])) {
@@ -191,7 +299,10 @@ class HootsuitePostManager {
   }
 
   /**
+   * Register image with hootsuite.
    *
+   * @param \Drupal\file\Entity\File $image
+   *   The file to register.
    */
   protected function registerImage(File $image) {
     $body = [
@@ -204,14 +315,14 @@ class HootsuitePostManager {
     }
     $data = json_decode($result, TRUE)['data'];
     $id = $data['id'];
-    if ($this->uploadToAWS($image, $data['uploadUrl'])) {
+    if ($this->uploadToAws($image, $data['uploadUrl'])) {
       $i = 0;
       do {
         sleep(1);
         $i++;
         if ($i > 20) {
-          \Drupal::messenger()->addMessage('Image could not be uploaded, waited for 20 seconds', 'warning');
-          \Drupal::logger('iq_hootsuite_publisher')->warning('Timeout on ready state for image with id @id.', ['@id' => $id]);
+          $this->messenger->addMessage('Image could not be uploaded, waited for 20 seconds', 'warning');
+          $this->logger->warning('Timeout on ready state for image with id @id.', ['@id' => $id]);
           return FALSE;
         }
         $response = $this->hootsuiteClient->connect('get', $this->config->get('url_post_media_endpoint') . '/' . $id);
@@ -220,16 +331,21 @@ class HootsuitePostManager {
         }
         $state = json_decode($response->getContents(), TRUE)['data']['state'];
       } while ($state != 'READY');
-      \Drupal::logger('iq_hootsuite_publisher')->notice('Ready state for image id @id.', ['@id' => $id]);
+      $this->logger->notice('Ready state for image id @id.', ['@id' => $id]);
       return $id;
     }
     return FALSE;
   }
 
   /**
+   * Upload an image to aws.
    *
+   * @param \Drupal\file\Entity\File $image
+   *   The file to upload.
+   * @param string $url
+   *   The endpoint to send it to.
    */
-  protected function uploadToAWS(File $image, $url) {
+  protected function uploadToAws(File $image, string $url) {
     $requestOptions = [
       RequestOptions::HEADERS => [
         'Content-Type' => $image->getMimeType(),
@@ -237,31 +353,35 @@ class HootsuitePostManager {
       ],
       RequestOptions::BODY => fopen($image->getFileUri(), 'r'),
     ];
-    $client = \Drupal::httpClient();
     try {
-      $response = $client->put($url, $requestOptions);
+      $response = $this->httpClient->put($url, $requestOptions);
       return TRUE;
     }
-    catch (Exception $e) {
-      \Drupal::messenger()->addMessage($e->getMessage());
+    catch (\Exception $e) {
+      $this->messenger->addMessage($e->getMessage());
       return FALSE;
     }
     return TRUE;
   }
 
   /**
+   * Check, if entity is or will be published by post time.
    *
+   * @param \Drupal\node\NodeInterface $entity
+   *   The entity.
+   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   *   The assignment.
    */
-  protected function validate(EntityInterface &$entity, &$assignment) {
+  protected function validate(NodeInterface &$entity, Assignment &$assignment) {
     if (!$entity->isPublished()) {
       if ($entity->hasField('publish_on') && !$entity->publish_on->isEmpty()) {
         if ($assignment->field_hs_date->date->getTimestamp() < $entity->publish_on->value) {
-          \Drupal::messenger()->addWarning(t('Cannot schedule post for @profile before the entry is being published.', ['@name' => $assignment->field_hs_profile_name->value]));
+          $this->messenger->addWarning(t('Cannot schedule post for @profile before the entry is being published.', ['@name' => $assignment->field_hs_profile_name->value]));
           return FALSE;
         }
       }
       else {
-        \Drupal::messenger()->addWarning(t('Cannot schedule post for @profile for unpublished entry.', ['@name' => $assignment->field_hs_profile_name->value]));
+        $this->messenger->addWarning(t('Cannot schedule post for @profile for unpublished entry.', ['@name' => $assignment->field_hs_profile_name->value]));
         return FALSE;
       }
     }
