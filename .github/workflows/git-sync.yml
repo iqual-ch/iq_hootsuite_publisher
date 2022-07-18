@@ -1,0 +1,28 @@
+name: Git Sync
+
+on: push
+
+jobs:
+  git-sync-code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: git-sync
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "git@github.com:iqual-ch/iq_hootsuite_publisher.git"             # <-- get source_repo from GitHub clone with SSH e.g.: git@github.com:iqual-ch/iq_module_name.git
+          source_branch: "3.x"                                                  # <-- set source_branch to the name of the branch you want mirrored
+          destination_repo: "git@git.drupal.org:project/assignments_hootsuite.git"    # <-- get destination_repo from GitLab clone with SSH e.g.: git@git.drupal.org:project/module_name.git
+          destination_branch: "3.x"
+          ssh_private_key: ${{ secrets.GITLAB_SSH_PRIVATE_KEY }}                # <-- use 'secrets' to pass credential information.
+
+  git-sync-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: git-sync
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "git@github.com:iqual-ch/iq_hootsuite_publisher.git"
+          source_branch: "refs/tags/3.0.0"                                          # <-- set source_branch to the "refs/tags/*" to mirror tags
+          destination_repo: "git@git.drupal.org:project/assignments_hootsuite.git"
+          destination_branch: "refs/tags/3.0.0"                                     # <-- set destination_branch to the "refs/tags/*"
+          ssh_private_key: ${{ secrets.GITLAB_SSH_PRIVATE_KEY }}
