@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\iq_hootsuite_publisher\Service;
+namespace Drupal\assignments_hootsuite\Service;
 
 use Drupal\Core\Messenger\Messenger;
 use Drupal\Core\Config\ConfigFactory;
@@ -11,7 +11,7 @@ use GuzzleHttp\RequestOptions;
 /**
  * Class Hootsuite API Client Service.
  *
- * @package Drupal\iq_hootsuite_publisher\Service
+ * @package Drupal\assignments_hootsuite\Service
  */
 class HootsuiteAPIClient {
 
@@ -66,9 +66,9 @@ class HootsuiteAPIClient {
         LoggerChannelFactoryInterface $loggerFactory,
         ClientInterface $http_client,
         Messenger $messenger) {
-    $this->config = $config->get('iq_hootsuite_publisher.settings');
-    $this->configTokens = $config->getEditable('iq_hootsuite_publisher.tokens');
-    $this->logger = $loggerFactory->get('iq_hootsuite_publisher');
+    $this->config = $config->get('assignments_hootsuite.settings');
+    $this->configTokens = $config->getEditable('assignments_hootsuite.tokens');
+    $this->logger = $loggerFactory->get('assignments_hootsuite');
     $this->httpClient = $http_client;
     $this->messenger = $messenger;
   }
@@ -80,7 +80,7 @@ class HootsuiteAPIClient {
     $params = [
       'response_type' => 'code',
       'client_id' => $this->config->get('client_id'),
-      'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
+      'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/assignments_hootsuite/callback',
       'scope' => 'offline',
     ];
     return $this->config->get('url_auth_endpoint') . '?' . http_build_query($params);
@@ -102,7 +102,7 @@ class HootsuiteAPIClient {
         ],
         RequestOptions::FORM_PARAMS => [
           'code' => $code,
-          'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
+          'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/assignments_hootsuite/callback',
           'grant_type' => 'authorization_code',
           'scope' => 'offline',
         ],
@@ -143,7 +143,7 @@ class HootsuiteAPIClient {
         ],
         RequestOptions::FORM_PARAMS => [
           'refresh_token' => $this->configTokens->get('refresh_token'),
-          'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/iq_hootsuite_publisher/callback',
+          'redirect_uri' => 'http' . ($_SERVER['HTTP_HOST'] ? 's' : '') . '://' . $_SERVER['HTTP_HOST'] . '/assignments_hootsuite/callback',
           'grant_type' => 'refresh_token',
           'scope' => 'offline',
         ],

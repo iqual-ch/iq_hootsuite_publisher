@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\iq_hootsuite_publisher\Service;
+namespace Drupal\assignments_hootsuite\Service;
 
 use GuzzleHttp\Client;
 use Drupal\Core\Config\ConfigFactory;
 use Drupal\Core\Utility\Token;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Messenger\Messenger;
-use Drupal\iq_publisher\Entity\Assignment;
+use Drupal\assignments\Entity\Assignment;
 use Drupal\node\NodeInterface;
 use Drupal\file\Entity\File;
 use GuzzleHttp\RequestOptions;
@@ -15,7 +15,7 @@ use GuzzleHttp\RequestOptions;
 /**
  * Class Hootsuite Post Manager.
  *
- * @package Drupal\iq_hootsuite_publisher\Service
+ * @package Drupal\assignments_hootsuite\Service
  */
 class HootsuitePostManager {
 
@@ -101,9 +101,9 @@ class HootsuitePostManager {
   ) {
     $this->hootsuiteClient = $hootsuite_client;
     $this->tokenService = $token_service;
-    $this->config = $config->get('iq_hootsuite_publisher.settings');
+    $this->config = $config->get('assignments_hootsuite.settings');
     $this->httpClient = $http_client;
-    $this->logger = $loggerFactory->get('iq_hootsuite_publisher');
+    $this->logger = $loggerFactory->get('assignments_hootsuite');
     $this->messenger = $messenger;
   }
 
@@ -133,7 +133,7 @@ class HootsuitePostManager {
    *
    * @param \Drupal\node\NodeInterface $entity
    *   The node to post the assignment of.
-   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   * @param \Drupal\assignments\Entity\Assignment $assignment
    *   The assignment to post.
    */
   public function sendPost(NodeInterface &$entity, Assignment &$assignment) {
@@ -210,7 +210,7 @@ class HootsuitePostManager {
   /**
    * Delete an assignment from Hootsuite.
    *
-   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   * @param \Drupal\assignments\Entity\Assignment $assignment
    *   The assignment to delete.
    * @param bool $update
    *   Whether to post info about the deletion.
@@ -244,7 +244,7 @@ class HootsuitePostManager {
    *
    * @param \Drupal\node\NodeInterface $entity
    *   The entity.
-   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   * @param \Drupal\assignments\Entity\Assignment $assignment
    *   The assignment.
    */
   protected function augmentForPinterest(NodeInterface $entity, Assignment $assignment) {
@@ -369,7 +369,7 @@ class HootsuitePostManager {
    *
    * @param \Drupal\node\NodeInterface $entity
    *   The entity.
-   * @param \Drupal\iq_publisher\Entity\Assignment $assignment
+   * @param \Drupal\assignments\Entity\Assignment $assignment
    *   The assignment.
    */
   protected function validate(NodeInterface &$entity, Assignment &$assignment) {

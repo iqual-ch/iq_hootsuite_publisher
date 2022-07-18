@@ -1,0 +1,9 @@
+assignments_hootsuite.settings:
+  title: Configure
+  route_name: assignments_hootsuite.settings
+  base_route: assignments_hootsuite.settings
+
+assignments_hootsuite.profiles:
+  title: 'Social profiles'
+  route_name: assignments_hootsuite.profiles
+  base_route: assignments_hootsuite.settings

@@ -1,10 +1,10 @@
 <?php
 
-namespace Drupal\iq_hootsuite_publisher\Controller;
+namespace Drupal\assignments_hootsuite\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
-use Drupal\iq_hootsuite_publisher\Service\HootsuiteAPIClient;
+use Drupal\assignments_hootsuite\Service\HootsuiteAPIClient;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,21 +12,21 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Google Client Callback Controller.
  *
- * @package Drupal\iq_hootsuite_publisher\Controller
+ * @package Drupal\assignments_hootsuite\Controller
  */
 class Callback extends ControllerBase {
 
   /**
    * Google API Client.
    *
-   * @var \Drupal\iq_hootsuite_publisher\Service\HootsuiteAPIClient
+   * @var \Drupal\assignments_hootsuite\Service\HootsuiteAPIClient
    */
   private $hootsuiteAPIClient;
 
   /**
    * Callback constructor.
    *
-   * @param \Drupal\iq_hootsuite_publisher\Service\HootsuiteAPIClient $hootsuiteAPIClient
+   * @param \Drupal\assignments_hootsuite\Service\HootsuiteAPIClient $hootsuiteAPIClient
    *   Google API Client.
    */
   public function __construct(HootsuiteAPIClient $hootsuiteAPIClient) {
@@ -38,7 +38,7 @@ class Callback extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('iq_hootsuite_publisher.client')
+      $container->get('assignments_hootsuite.client')
     );
   }
 
@@ -62,6 +62,6 @@ class Callback extends ControllerBase {
       $this->messenger()->addError($this->t('Failed to get access token. Check log messages.'));
     }
 
-    return new RedirectResponse(Url::fromRoute('iq_hootsuite_publisher.settings')->toString());
+    return new RedirectResponse(Url::fromRoute('assignments_hootsuite.settings')->toString());
   }
 }

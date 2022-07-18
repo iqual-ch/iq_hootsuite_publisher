@@ -2,7 +2,7 @@ langcode: en
 status: true
 dependencies:
   module:
-    - iq_publisher
+    - assignments
 id: assignment.field_hs_profile_name
 field_name: field_hs_profile_name
 entity_type: assignment

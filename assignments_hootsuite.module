@@ -12,30 +12,30 @@ use GuzzleHttp\RequestOptions;
 /**
  *
  */
-function iq_hootsuite_publisher_node_update(EntityInterface $entity) {
-  $postManager = \Drupal::service('iq_hootsuite_publisher.post_manager');
+function assignments_hootsuite_node_update(EntityInterface $entity) {
+  $postManager = \Drupal::service('assignments_hootsuite.post_manager');
   $postManager->handleNode($entity);
 }
 
 /**
  *
  */
-function iq_hootsuite_publisher_node_insert(EntityInterface $entity) {
-  $postManager = \Drupal::service('iq_hootsuite_publisher.post_manager');
+function assignments_hootsuite_node_insert(EntityInterface $entity) {
+  $postManager = \Drupal::service('assignments_hootsuite.post_manager');
   $postManager->handleNode($entity);
 }
 
 /**
  *
  */
-function iq_hootsuite_publisher_node_predelete(EntityInterface $entity) {
+function assignments_hootsuite_node_predelete(EntityInterface $entity) {
   if ($entity->hasField('field_hs_assignment')) {
     $assignments = $entity->field_hs_assignment;
 
     foreach ($assignments as $item) {
       // If is social media type.
       if ($item->entity != NULL && !$item->entity->field_hs_profile_id->isEmpty()) {
-        $postManager = \Drupal::service('iq_hootsuite_publisher.post_manager');
+        $postManager = \Drupal::service('assignments_hootsuite.post_manager');
         $postManager->deletePost($item->entity);
       }
     }
@@ -45,15 +45,15 @@ function iq_hootsuite_publisher_node_predelete(EntityInterface $entity) {
 /**
  *
  */
-function iq_hootsuite_publisher_assignment_predelete(EntityInterface $entity) {
-  $postManager = \Drupal::service('iq_hootsuite_publisher.post_manager');
+function assignments_hootsuite_assignment_predelete(EntityInterface $entity) {
+  $postManager = \Drupal::service('assignments_hootsuite.post_manager');
   $postManager->deletePost($entity);
 }
 
 /**
  *
  */
-function iq_hootsuite_publisher_entity_translation_create(EntityInterface $translation) {
+function assignments_hootsuite_entity_translation_create(EntityInterface $translation) {
   if ($translation->hasField('field_hs_assignment')) {
     $translation->field_hs_assignment->setValue([]);
   }

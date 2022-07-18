@@ -1,9 +1,0 @@
-iq_hootsuite_publisher.settings:
-  title: Configure
-  route_name: iq_hootsuite_publisher.settings
-  base_route: iq_hootsuite_publisher.settings
-
-iq_hootsuite_publisher.profiles:
-  title: 'Social profiles'
-  route_name: iq_hootsuite_publisher.profiles
-  base_route: iq_hootsuite_publisher.settings

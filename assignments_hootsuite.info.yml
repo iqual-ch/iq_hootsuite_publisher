@@ -1,0 +1,10 @@
+name: assignments_hootsuite
+description: Hootsuite extension for assignments.
+type: module
+package: 'assignments'
+core_version_requirement: ^8.8 || ^9
+configure: assignments_hootsuite.settings
+
+dependencies:
+  - assignments:assignments
+  - oauth2_client:oauth2_client

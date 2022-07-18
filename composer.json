@@ -1,10 +1,10 @@
 {
-    "name": "iqual/iq_hootsuite_publisher",
-    "description": "Hootsuite extension for iq_publisher",
-    "type": "drupal-custom-module",
+    "name": "drupal/assignments_hootsuite",
+    "description": "Hootsuite extension for assignments",
+    "type": "drupal-module",
     "minimum-stability": "dev",
     "require": {
-        "iqual/iq_publisher": "^2.0",
+        "drupal/assignments": "^3.0",
         "drupal/oauth2_client": "^2.0"
     }
 }

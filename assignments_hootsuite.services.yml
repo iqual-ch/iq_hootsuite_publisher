@@ -1,0 +1,7 @@
+services:
+  assignments_hootsuite.client:
+    class: Drupal\assignments_hootsuite\Service\HootsuiteAPIClient
+    arguments: ['@config.factory', '@logger.factory', '@http_client', '@messenger']
+  assignments_hootsuite.post_manager:
+    class: Drupal\assignments_hootsuite\Service\HootsuitePostManager
+    arguments: ['@assignments_hootsuite.client', '@token', '@config.factory', '@http_client', '@logger.factory', '@messenger']

@@ -1,0 +1,22 @@
+assignments_hootsuite.settings:
+  path: 'admin/config/services/assignments_hootsuite'
+  defaults:
+    _form:  '\Drupal\assignments_hootsuite\Form\Settings'
+    _title: 'Hootsuite API Settings'
+  requirements:
+    _permission: 'administer hootsuite api settings'
+
+assignments_hootsuite.callback:
+  path: 'assignments_hootsuite/callback'
+  defaults: { _controller: '\Drupal\assignments_hootsuite\Controller\Callback::callbackUrl' }
+  methods:  [GET]
+  requirements:
+    _permission: 'administer hootsuite api settings'
+
+assignments_hootsuite.profiles:
+  path: 'admin/config/services/assignments_hootsuite/profiles'
+  defaults:
+    _form:  '\Drupal\assignments_hootsuite\Form\Profiles'
+    _title: 'Social profiles'
+    requirements:
+      _permission: 'administer hootsuite api settings'

@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\iq_hootsuite_publisher\Form;
+namespace Drupal\assignments_hootsuite\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
-use Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient;
+use Drupal\assignments_hootsuite\Service\HootSuiteAPIClient;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -18,7 +18,7 @@ class Settings extends ConfigFormBase {
   /**
    * Google API Client.
    *
-   * @var \Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient
+   * @var \Drupal\assignments_hootsuite\Service\HootSuiteAPIClient
    */
   private $hootSuiteAPIClient;
 
@@ -27,7 +27,7 @@ class Settings extends ConfigFormBase {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   Config Factory.
-   * @param \Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient $hootSuiteAPIClient
+   * @param \Drupal\assignments_hootsuite\Service\HootSuiteAPIClient $hootSuiteAPIClient
    *   Google Api Client.
    */
   public function __construct(ConfigFactoryInterface $config_factory,
@@ -42,7 +42,7 @@ class Settings extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
-      $container->get('iq_hootsuite_publisher.client')
+      $container->get('assignments_hootsuite.client')
     );
   }
 
@@ -50,14 +50,14 @@ class Settings extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'iq_hootsuite_publisher_settings';
+    return 'assignments_hootsuite_settings';
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
-    return ['iq_hootsuite_publisher.settings'];
+    return ['assignments_hootsuite.settings'];
   }
 
   /**
@@ -65,8 +65,8 @@ class Settings extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $config = $this->config('iq_hootsuite_publisher.settings');
-    $tokenConf = $this->config('iq_hootsuite_publisher.tokens');
+    $config = $this->config('assignments_hootsuite.settings');
+    $tokenConf = $this->config('assignments_hootsuite.tokens');
     $options = ['attributes' => ['target' => '_self']];
 
     $form['client'] = [
@@ -184,7 +184,7 @@ class Settings extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->config('iq_hootsuite_publisher.settings')
+    $this->config('assignments_hootsuite.settings')
       ->set('client_id', $form_state->getValue('client_id'))
       ->set('client_secret', $form_state->getValue('client_secret'))
       ->set('url_auth_endpoint', $form_state->getValue('url_auth_endpoint'))

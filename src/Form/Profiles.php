@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\iq_hootsuite_publisher\Form;
+namespace Drupal\assignments_hootsuite\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
-use Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient;
-use Drupal\iq_publisher\Entity\AssignmentType;
+use Drupal\assignments_hootsuite\Service\HootSuiteAPIClient;
+use Drupal\assignments\Entity\AssignmentType;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,7 +19,7 @@ class Profiles extends ConfigFormBase
     /**
      * Google API Client.
      *
-     * @var \Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient
+     * @var \Drupal\assignments_hootsuite\Service\HootSuiteAPIClient
      */
     private $hootSuiteAPIClient;
 
@@ -28,7 +28,7 @@ class Profiles extends ConfigFormBase
      *
      * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
      *   Config Factory.
-     * @param \Drupal\iq_hootsuite_publisher\Service\HootSuiteAPIClient $hootSuiteAPIClient
+     * @param \Drupal\assignments_hootsuite\Service\HootSuiteAPIClient $hootSuiteAPIClient
      *   Google Api Client.
      */
     public function __construct(ConfigFactoryInterface $config_factory,
@@ -44,7 +44,7 @@ class Profiles extends ConfigFormBase
     {
         return new static(
             $container->get('config.factory'),
-            $container->get('iq_hootsuite_publisher.client')
+            $container->get('assignments_hootsuite.client')
         );
     }
 
@@ -53,7 +53,7 @@ class Profiles extends ConfigFormBase
      */
     public function getFormId()
     {
-        return 'iq_hootsuite_publisher_profiles';
+        return 'assignments_hootsuite_profiles';
     }
 
     /**
@@ -61,7 +61,7 @@ class Profiles extends ConfigFormBase
      */
     protected function getEditableConfigNames()
     {
-        return ['iq_hootsuite_publisher.settings'];
+        return ['assignments_hootsuite.settings'];
     }
 
     /**
@@ -70,8 +70,8 @@ class Profiles extends ConfigFormBase
     public function buildForm(array $form, FormStateInterface $form_state)
     {
 
-        $config = $this->config('iq_hootsuite_publisher.settings');
-        $hootsuite_client = \Drupal::service('iq_hootsuite_publisher.client');
+        $config = $this->config('assignments_hootsuite.settings');
+        $hootsuite_client = \Drupal::service('assignments_hootsuite.client');
 
         $response = $hootsuite_client->connect('get', $config->get('url_social_profiles_endpoint'));
         if (!empty($response)) {
@@ -115,7 +115,7 @@ class Profiles extends ConfigFormBase
                         $this->addBaseFieldsSocialProfile($key, $profiles[$key]['#title']);
                     }
                 }
-                $this->config('iq_hootsuite_publisher.settings')
+                $this->config('assignments_hootsuite.settings')
                     ->set($key, $value)
                     ->save();
             }
@@ -138,7 +138,7 @@ class Profiles extends ConfigFormBase
             "langcode" => "de",
             "status" => true,
             "dependencies" => [
-                "config" => ["field.storage.assignment.field_hs_image", "iq_publisher.assignment_type." . $id],
+                "config" => ["field.storage.assignment.field_hs_image", "assignments.assignment_type." . $id],
             ],
             "id" => "assignment." . $id . ".field_hs_image",
             "field_name" => "field_hs_image",
@@ -157,7 +157,7 @@ class Profiles extends ConfigFormBase
             "langcode" => "de",
             "status" => true,
             "dependencies" => [
-                "config" => ["field.storage.assignment.field_hs_post", "iq_publisher.assignment_type." . $id],
+                "config" => ["field.storage.assignment.field_hs_post", "assignments.assignment_type." . $id],
             ],
             "id" => "assignment." . $id . ".field_hs_post",
             "field_name" => "field_hs_post",
@@ -177,7 +177,7 @@ class Profiles extends ConfigFormBase
             "langcode" => "de",
             "status" => true,
             "dependencies" => [
-                "config" => ["field.storage.assignment.field_hs_date", "iq_publisher.assignment_type." . $id],
+                "config" => ["field.storage.assignment.field_hs_date", "assignments.assignment_type." . $id],
                 "module" => ["datetime"],
             ],
             "id" => "assignment." . $id . ".field_hs_date",
@@ -196,7 +196,7 @@ class Profiles extends ConfigFormBase
         $fields[] = [
             "langcode" => "de",
             "status" => true,
-            "dependencies" => ["config" => ["field.storage.assignment.field_hs_post_id", "iq_publisher.assignment_type." . $id]],
+            "dependencies" => ["config" => ["field.storage.assignment.field_hs_post_id", "assignments.assignment_type." . $id]],
             "id" => "assignment." . $id . ".field_hs_post_id",
             "field_name" => "field_hs_post_id",
             "entity_type" => "assignment",
@@ -213,7 +213,7 @@ class Profiles extends ConfigFormBase
         $fields[] = [
             "langcode" => "de",
             "status" => true,
-            "dependencies" => ["config" => ["field.storage.assignment.field_hs_profile_id", "iq_publisher.assignment_type." . $id]],
+            "dependencies" => ["config" => ["field.storage.assignment.field_hs_profile_id", "assignments.assignment_type." . $id]],
             "id" => "assignment." . $id . ".field_hs_profile_id",
             "field_name" => "field_hs_profile_id",
             "entity_type" => "assignment",
@@ -230,7 +230,7 @@ class Profiles extends ConfigFormBase
         $fields[] = [
             "langcode" => "de",
             "status" => true,
-            "dependencies" => ["config" => ["field.storage.assignment.field_hs_profile_name", "iq_publisher.assignment_type." . $id]],
+            "dependencies" => ["config" => ["field.storage.assignment.field_hs_profile_name", "assignments.assignment_type." . $id]],
             "id" => "assignment." . $id . ".field_hs_profile_name",
             "field_name" => "field_hs_profile_name",
             "entity_type" => "assignment",

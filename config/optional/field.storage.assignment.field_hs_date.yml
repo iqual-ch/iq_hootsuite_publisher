@@ -3,7 +3,7 @@ status: true
 dependencies:
   module:
     - datetime
-    - iq_publisher
+    - assignments
 id: assignment.field_hs_date
 field_name: field_hs_date
 entity_type: assignment

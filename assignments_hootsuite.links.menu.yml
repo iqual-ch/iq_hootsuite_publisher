@@ -1,6 +1,6 @@
-iq_hootsuite_publisher.settings:
+assignments_hootsuite.settings:
   title: 'Hootsuite API settings'
-  route_name: iq_hootsuite_publisher.settings
+  route_name: assignments_hootsuite.settings
   description: 'Configure Hootsuite API settings.'
   parent: system.admin_config_services
   weight: 200
