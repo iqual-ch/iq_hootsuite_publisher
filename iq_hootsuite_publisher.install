@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * 
+ * Custom hooks for iq_hootsuite_publisher installation / update. 
+ */
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Add hootsuite id field to file entity.
+ */
+function iq_hootsuite_publisher_update_9001() {
+  $field_storage = FieldStorageConfig::loadByName('file', 'field_hs_id');
+  if (empty($field_storage)) {
+    // Create the field storage definition.
+    FieldStorageConfig::create([
+      'field_name' => 'field_hs_id',
+      'entity_type' => 'file',
+      'type' => 'text',
+      'cardinality' => 1,
+    ])->save();
+
+    // Create the field instance.
+    FieldConfig::create([
+      'field_name' => 'field_hs_id',
+      'label' => 'Hootsuite ID',
+      'entity_type' => 'file',
+      'bundle' => 'file',
+      'required' => FALSE,
+    ])->save();
+  }
+}
