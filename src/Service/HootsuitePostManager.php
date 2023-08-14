@@ -174,6 +174,9 @@ class HootsuitePostManager {
           $requestBody['media'] = [['id' => $id]];
         }
         else if (($id = $this->uploadImage($image)) !== FALSE) {
+          // Save the id to the file entity.
+          $image->set('field_hs_id', $id);
+          $image->save();
           $requestBody['media'] = [['id' => $id]];
         }
         else {
