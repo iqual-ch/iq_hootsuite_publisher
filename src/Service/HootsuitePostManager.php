@@ -158,7 +158,22 @@ class HootsuitePostManager {
       $image = File::load($imageId);
 
       if ($image != NULL) {
-        if (($id = $this->uploadImage($image)) !== FALSE) {
+        $id = NULL;
+        // Check if the image was already uploaded to hootsuite.
+        if ($image->hasField('field_hs_id') && !$image->field_hs_id->isEmpty()) {
+          $media_id = $image->field_hs_id->value;
+          // Try to fetch the image from hootsuite
+          // @see https://platform.hootsuite.com/docs/api/index.html#operation/getMedia
+          $response = $this->hootsuiteClient->connect('get', $this->config->get('url_post_media_endpoint') . '/' . $media_id);
+          if (!empty($response)) {
+            $media_data = json_decode($response, TRUE)['data'];
+            $id = $media_data['id'];
+          }
+        }
+        if ($id) {
+          $requestBody['media'] = [['id' => $id]];
+        }
+        else if (($id = $this->uploadImage($image)) !== FALSE) {
           $requestBody['media'] = [['id' => $id]];
         }
         else {
