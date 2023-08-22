@@ -19,6 +19,8 @@ use GuzzleHttp\RequestOptions;
  */
 class HootsuitePostManager {
 
+  use \Drupal\Core\StringTranslation\StringTranslationTrait;
+
   /**
    * The api client for hootsuite.
    *
@@ -140,6 +142,7 @@ class HootsuitePostManager {
     // Delete post from hootsuite if already exists.
     if (!$assignment->field_hs_post_id->isEmpty()) {
       $this->deletePost($assignment, TRUE);
+      $this->logger->notice($this->t('Deleted post @id on hootsuite', ['@id' => $assignment->field_hs_post_id->value]));
       $assignment->field_hs_post_id->value = NULL;
     }
 
@@ -168,6 +171,7 @@ class HootsuitePostManager {
           if (!empty($response)) {
             $media_data = json_decode($response, TRUE)['data'];
             $id = $media_data['id'];
+            $this->logger->notice($this->t('Retrieved image @id from hootsuite', ['@id' => $id]));
           }
         }
         if ($id) {
@@ -181,7 +185,7 @@ class HootsuitePostManager {
         }
         else {
           $this->messenger->addError(
-              t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
+             $this->t('Post for @profile has not been posted/changed on Hootsuite due to error on image processing.',
               ['@profile' => $assignment->field_hs_profile_name->value])
             );
           return;
@@ -206,7 +210,7 @@ class HootsuitePostManager {
       /** @var \Drupal\Core\Entity\Entity $entity */
       $assignment->save();
       $this->logger->notice(
-        t('Created post for @profile with id @id.'),
+       $this->t('Created post for @profile with id @id.'),
         [
           '@profile' => $assignment->field_hs_profile_name->value,
           '@id' => $assignment->field_hs_post_id->value,
@@ -218,6 +222,13 @@ class HootsuitePostManager {
       );
     }
     else {
+      $this->logger->notice(
+        $this->t('Fail creating post for @profile with id @id.'),
+         [
+           '@profile' => $assignment->field_hs_profile_name->value,
+           '@id' => $assignment->field_hs_post_id->value,
+         ]
+       );
       $this->messenger->addWarning(
         'Failed posting for @profile.',
         ['@profile' => $assignment->field_hs_profile_name->value]
@@ -244,14 +255,14 @@ class HootsuitePostManager {
     $this->hootsuiteClient->connect('delete', $url);
     if (!$update) {
       $this->logger->notice(
-        t('Deleted post for @profile with id @id.'),
+       $this->t('Deleted post for @profile with id @id.'),
         [
           '@profile' => $assignment->field_hs_profile_name->value,
           '@id' => $assignment->field_hs_post_id->value,
         ]
       );
       $this->messenger->addMessage(
-        t('Deleted post for @profile.'),
+       $this->t('Deleted post for @profile.'),
         ['@profile' => $assignment->field_hs_profile_name->value]
       );
     }
@@ -287,7 +298,7 @@ class HootsuitePostManager {
       }
       else {
         $this->messenger->addError(
-          t('Post for @profile has not been posted/changed on Hootsuite due to missing board id.',
+         $this->t('Post for @profile has not been posted/changed on Hootsuite due to missing board id.',
          ['@profile' => $assignment->field_hs_profile_name->value])
         );
         return NULL;
@@ -304,6 +315,12 @@ class HootsuitePostManager {
    */
   public function uploadImage(File $image) {
     if (!empty($this->images[$image->id()])) {
+      $this->logger->notice(
+        $this->t('Image @id already exists.'),
+         [
+           '@id' => $image->id(),
+         ]
+       );
       return $this->images[$image->id()];
     }
     else {
@@ -327,8 +344,20 @@ class HootsuitePostManager {
       'mimeType' => $image->getMimeType(),
       'sizeBytes' => filesize($image->getFileUri()),
     ];
+    $this->logger->notice(
+      $this->t('Posting Image @id to hootsuite.'),
+      [
+        '@id' => $image->id(),
+      ]
+    );
     $result = $this->hootsuiteClient->connect('post', $this->config->get('url_post_media_endpoint'), NULL, $body);
     if (empty($result)) {
+      $this->logger->notice(
+        $this->t('Image @id could not be created on hootsuite.'),
+         [
+           '@id' => $image->id(),
+         ]
+       );
       return FALSE;
     }
     $data = json_decode($result, TRUE)['data'];
@@ -376,6 +405,13 @@ class HootsuitePostManager {
       return TRUE;
     }
     catch (\Exception $e) {
+      $this->logger->notice(
+        $this->t('Error when uploading image @url to aws. Message: @message'),
+         [
+           '@id' => $image->id(),
+           '@message' => $e->getMessage(),
+         ]
+       );
       $this->messenger->addMessage($e->getMessage());
       return FALSE;
     }
