@@ -217,8 +217,11 @@ class HootsuitePostManager {
         ]
       );
       $this->messenger->addMessage(
-        'The post for @profile has been successfully scheduled.',
-        ['@profile' => $assignment->field_hs_profile_name->value]
+        $this->t('The post for @profile has been successfully scheduled.',
+          [
+            '@profile' => $assignment->field_hs_profile_name->value,
+          ]
+        )
       );
     }
     else {
@@ -230,8 +233,11 @@ class HootsuitePostManager {
          ]
        );
       $this->messenger->addWarning(
-        'Failed posting for @profile.',
-        ['@profile' => $assignment->field_hs_profile_name->value]
+        $this->t('Failed posting for @profile.',
+          [
+            '@profile' => $assignment->field_hs_profile_name->value,
+          ]
+        )
       );
     }
   }
@@ -262,8 +268,11 @@ class HootsuitePostManager {
         ]
       );
       $this->messenger->addMessage(
-       $this->t('Deleted post for @profile.'),
-        ['@profile' => $assignment->field_hs_profile_name->value]
+        $this->t('Deleted post for @profile.',
+          [
+            '@profile' => $assignment->field_hs_profile_name->value,
+          ]
+        )
       );
     }
   }
